@@ -5,7 +5,7 @@
 #include <arpa/inet.h>
 
 #define SO_PORT 8080
-#define SO_SERVER_IP "10.0.0.1"  // 서버의 IP 주소
+#define SO_SERVER_IP "127.0.0.1"  // 서버의 IP 주소
 //#define MESSAGE "Hello, Server!"
 const int  SO_BUFFER_SIZE = 1024;
 
