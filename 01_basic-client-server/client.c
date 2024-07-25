@@ -13,8 +13,8 @@ const int BUFFER_SIZE = 1024;
 const int TIMEOUT_IN_MS = 500;
 
 //@delee
-//const uint16_t DEFAULT_PORT = "12345";
 const char *DEFAULT_PORT = "12345";
+//const int DEFAULT_PORT = 12345;
 
 struct context {
   struct ibv_context *ctx;
@@ -62,31 +62,34 @@ int main(int argc, char **argv)
 	struct rdma_cm_id *conn= NULL;
 	struct rdma_event_channel *ec = NULL;
 
-	if (argc != 3)
-		die("usage: client <server-address> <server-port>");
+//	if (argc != 3)
+//		die("usage: client <server-address> <server-port>");
 
 //	TEST_NZ(getaddrinfo(argv[1], argv[2], NULL, &addr));
+
+	if (argc < 2)
+		die("usage: client <server-address> <server-port>");
 	TEST_NZ(getaddrinfo(argv[1], DEFAULT_PORT, NULL, &addr));
 
 	TEST_Z(ec = rdma_create_event_channel());
 	TEST_NZ(rdma_create_id(ec, &conn, NULL, RDMA_PS_TCP));
 	TEST_NZ(rdma_resolve_addr(conn, NULL, addr->ai_addr, TIMEOUT_IN_MS));
 
-  freeaddrinfo(addr);
+	freeaddrinfo(addr);
 
-  while (rdma_get_cm_event(ec, &event) == 0) {
-    struct rdma_cm_event event_copy;
+	while (rdma_get_cm_event(ec, &event) == 0) {
+		struct rdma_cm_event event_copy;
 
-    memcpy(&event_copy, event, sizeof(*event));
-    rdma_ack_cm_event(event);
+		memcpy(&event_copy, event, sizeof(*event));
+		rdma_ack_cm_event(event);
 
-    if (on_event(&event_copy))
-      break;
-  }
+		if (on_event(&event_copy))
+			break;
+	}
 
-  rdma_destroy_event_channel(ec);
+	rdma_destroy_event_channel(ec);
 
-  return 0;
+	return 0;
 }
 
 void die(const char *reason)
