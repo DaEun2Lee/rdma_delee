@@ -1,48 +1,48 @@
-#include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <rdma/rdma_cma.h>
+//#include <netdb.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <string.h>
+//#include <unistd.h>
+//#include <rdma/rdma_cma.h>
+#include "rdma_common.h"
 
-#define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
-#define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
+//#define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
+//#define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
 
-const int BUFFER_SIZE = 1024;
+//const int BUFFER_SIZE = 1024;
 //const char TIMEOUT_IN_MS = 500; /* ms */
-const int TIMEOUT_IN_MS = 500;
+//const int TIMEOUT_IN_MS = 500;
 
 //@delee
 const char *DEFAULT_IP = "10.0.0.1";
 const char *DEFAULT_PORT = "12345";
 //const int DEFAULT_PORT = 12345;
+//
+//struct context {
+//  struct ibv_context *ctx;
+//  struct ibv_pd *pd;
+//  struct ibv_cq *cq;
+//  struct ibv_comp_channel *comp_channel;
+//
+//  pthread_t cq_poller_thread;
+//};
 
-struct context {
-//	//@delee
-//	char *buffer;
+struct context *server_ctx = NULL;
 
-  struct ibv_context *ctx;
-  struct ibv_pd *pd;
-  struct ibv_cq *cq;
-  struct ibv_comp_channel *comp_channel;
+//struct connection {
+//	struct rdma_cm_id *id;
+//	struct ibv_qp *qp;
+//
+//	struct ibv_mr *recv_mr;
+//	struct ibv_mr *send_mr;
+//
+//	char *recv_region;
+//	char *send_region;
+//
+//	int num_completions;
+//};
 
-  pthread_t cq_poller_thread;
-};
-
-struct connection {
-  struct rdma_cm_id *id;
-  struct ibv_qp *qp;
-
-  struct ibv_mr *recv_mr;
-  struct ibv_mr *send_mr;
-
-  char *recv_region;
-  char *send_region;
-
-  int num_completions;
-};
-
-static void die(const char *reason);
+//static void die(const char *reason);
 
 static void build_context(struct ibv_context *verbs);
 static void build_qp_attr(struct ibv_qp_init_attr *qp_attr);
@@ -57,9 +57,10 @@ static int on_disconnect(struct rdma_cm_id *id);
 static int on_event(struct rdma_cm_event *event);
 static int on_route_resolved(struct rdma_cm_id *id);
 
-static struct context *s_ctx = NULL;
+//static struct context *s_ctx = NULL;
 
-int main(int argc, char **argv)
+//int main(int argc, char **argv)
+int rdma_client()
 {
 	struct addrinfo *addr;
 	struct rdma_cm_event *event = NULL;
@@ -71,8 +72,8 @@ int main(int argc, char **argv)
 
 //	TEST_NZ(getaddrinfo(argv[1], argv[2], NULL, &addr));
 
-	if (argc < 2)
-		die("usage: client <server-address> <server-port>");
+//	if (argc < 2)
+//		die("usage: client <server-address> <server-port>");
 
 //	TEST_NZ(getaddrinfo(argv[1], DEFAULT_PORT, NULL, &addr));
 	TEST_NZ(getaddrinfo(DEFAULT_IP, DEFAULT_PORT, NULL, &addr));
@@ -97,63 +98,63 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void die(const char *reason)
-{
-	fprintf(stderr, "%s\n", reason);
-	exit(EXIT_FAILURE);
-}
+//void die(const char *reason)
+//{
+//	fprintf(stderr, "%s\n", reason);
+//	exit(EXIT_FAILURE);
+//}
 
-void build_context(struct ibv_context *verbs)
-{
-	if (s_ctx) {
-		if (s_ctx->ctx != verbs)
-			die("cannot handle events in more than one context.");
+//void build_context(struct ibv_context *verbs)
+//{
+//	if (s_ctx) {
+//		if (s_ctx->ctx != verbs)
+//			die("cannot handle events in more than one context.");
+//
+//		return;
+//	}
+//
+//	s_ctx = (struct context *)malloc(sizeof(struct context));
+//
+//	s_ctx->ctx = verbs;
+//
+//	TEST_Z(s_ctx->pd = ibv_alloc_pd(s_ctx->ctx));
+//	TEST_Z(s_ctx->comp_channel = ibv_create_comp_channel(s_ctx->ctx));
+//	TEST_Z(s_ctx->cq = ibv_create_cq(s_ctx->ctx, 10, NULL, s_ctx->comp_channel, 0)); /* cqe=10 is arbitrary */
+//	TEST_NZ(ibv_req_notify_cq(s_ctx->cq, 0));
+//
+//	TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
+//}
 
-		return;
-	}
+//void build_qp_attr(struct ibv_qp_init_attr *qp_attr)
+//{
+//  memset(qp_attr, 0, sizeof(*qp_attr));
+//
+//  qp_attr->send_cq = s_ctx->cq;
+//  qp_attr->recv_cq = s_ctx->cq;
+//  qp_attr->qp_type = IBV_QPT_RC;
+//
+//  qp_attr->cap.max_send_wr = 10;
+//  qp_attr->cap.max_recv_wr = 10;
+//  qp_attr->cap.max_send_sge = 1;
+//  qp_attr->cap.max_recv_sge = 1;
+//}
 
-	s_ctx = (struct context *)malloc(sizeof(struct context));
-
-	s_ctx->ctx = verbs;
-
-	TEST_Z(s_ctx->pd = ibv_alloc_pd(s_ctx->ctx));
-	TEST_Z(s_ctx->comp_channel = ibv_create_comp_channel(s_ctx->ctx));
-	TEST_Z(s_ctx->cq = ibv_create_cq(s_ctx->ctx, 10, NULL, s_ctx->comp_channel, 0)); /* cqe=10 is arbitrary */
-	TEST_NZ(ibv_req_notify_cq(s_ctx->cq, 0));
-
-	TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
-}
-
-void build_qp_attr(struct ibv_qp_init_attr *qp_attr)
-{
-  memset(qp_attr, 0, sizeof(*qp_attr));
-
-  qp_attr->send_cq = s_ctx->cq;
-  qp_attr->recv_cq = s_ctx->cq;
-  qp_attr->qp_type = IBV_QPT_RC;
-
-  qp_attr->cap.max_send_wr = 10;
-  qp_attr->cap.max_recv_wr = 10;
-  qp_attr->cap.max_send_sge = 1;
-  qp_attr->cap.max_recv_sge = 1;
-}
-
-void * poll_cq(void *ctx)
-{
-  struct ibv_cq *cq;
-  struct ibv_wc wc;
-
-  while (1) {
-    TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ctx));
-    ibv_ack_cq_events(cq, 1);
-    TEST_NZ(ibv_req_notify_cq(cq, 0));
-
-    while (ibv_poll_cq(cq, 1, &wc))
-      on_completion(&wc);
-  }
-
-  return NULL;
-}
+//void * poll_cq(void *ctx)
+//{
+//  struct ibv_cq *cq;
+//  struct ibv_wc wc;
+//
+//  while (1) {
+//    TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ctx));
+//    ibv_ack_cq_events(cq, 1);
+//    TEST_NZ(ibv_req_notify_cq(cq, 0));
+//
+//    while (ibv_poll_cq(cq, 1, &wc))
+//      on_completion(&wc);
+//  }
+//
+//  return NULL;
+//}
 
 void post_receives(struct connection *conn)
 {

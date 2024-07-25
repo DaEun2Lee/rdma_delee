@@ -60,6 +60,7 @@ static int on_route_resolved(struct rdma_cm_id *id);
 static struct context *s_ctx = NULL;
 
 int main(int argc, char **argv)
+int rdma_client()
 {
 	struct addrinfo *addr;
 	struct rdma_cm_event *event = NULL;
@@ -71,8 +72,8 @@ int main(int argc, char **argv)
 
 //	TEST_NZ(getaddrinfo(argv[1], argv[2], NULL, &addr));
 
-	if (argc < 2)
-		die("usage: client <server-address> <server-port>");
+//	if (argc < 2)
+//		die("usage: client <server-address> <server-port>");
 
 //	TEST_NZ(getaddrinfo(argv[1], DEFAULT_PORT, NULL, &addr));
 	TEST_NZ(getaddrinfo(DEFAULT_IP, DEFAULT_PORT, NULL, &addr));
