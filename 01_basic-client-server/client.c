@@ -17,6 +17,9 @@ const char *DEFAULT_PORT = "12345";
 //const int DEFAULT_PORT = 12345;
 
 struct context {
+//	//@delee
+//	char *buffer;
+
   struct ibv_context *ctx;
   struct ibv_pd *pd;
   struct ibv_cq *cq;
@@ -69,6 +72,7 @@ int main(int argc, char **argv)
 
 	if (argc < 2)
 		die("usage: client <server-address> <server-port>");
+
 	TEST_NZ(getaddrinfo(argv[1], DEFAULT_PORT, NULL, &addr));
 
 	TEST_Z(ec = rdma_create_event_channel());
@@ -76,7 +80,6 @@ int main(int argc, char **argv)
 	TEST_NZ(rdma_resolve_addr(conn, NULL, addr->ai_addr, TIMEOUT_IN_MS));
 
 	freeaddrinfo(addr);
-
 	while (rdma_get_cm_event(ec, &event) == 0) {
 		struct rdma_cm_event event_copy;
 
@@ -94,29 +97,29 @@ int main(int argc, char **argv)
 
 void die(const char *reason)
 {
-  fprintf(stderr, "%s\n", reason);
-  exit(EXIT_FAILURE);
+	fprintf(stderr, "%s\n", reason);
+	exit(EXIT_FAILURE);
 }
 
 void build_context(struct ibv_context *verbs)
 {
-  if (s_ctx) {
-    if (s_ctx->ctx != verbs)
-      die("cannot handle events in more than one context.");
+	if (s_ctx) {
+		if (s_ctx->ctx != verbs)
+			die("cannot handle events in more than one context.");
 
-    return;
-  }
+		return;
+	}
 
-  s_ctx = (struct context *)malloc(sizeof(struct context));
+	s_ctx = (struct context *)malloc(sizeof(struct context));
 
-  s_ctx->ctx = verbs;
+	s_ctx->ctx = verbs;
 
-  TEST_Z(s_ctx->pd = ibv_alloc_pd(s_ctx->ctx));
-  TEST_Z(s_ctx->comp_channel = ibv_create_comp_channel(s_ctx->ctx));
-  TEST_Z(s_ctx->cq = ibv_create_cq(s_ctx->ctx, 10, NULL, s_ctx->comp_channel, 0)); /* cqe=10 is arbitrary */
-  TEST_NZ(ibv_req_notify_cq(s_ctx->cq, 0));
+	TEST_Z(s_ctx->pd = ibv_alloc_pd(s_ctx->ctx));
+	TEST_Z(s_ctx->comp_channel = ibv_create_comp_channel(s_ctx->ctx));
+	TEST_Z(s_ctx->cq = ibv_create_cq(s_ctx->ctx, 10, NULL, s_ctx->comp_channel, 0)); /* cqe=10 is arbitrary */
+	TEST_NZ(ibv_req_notify_cq(s_ctx->cq, 0));
 
-  TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
+	TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
 }
 
 void build_qp_attr(struct ibv_qp_init_attr *qp_attr)
@@ -229,31 +232,61 @@ void on_completion(struct ibv_wc *wc)
     rdma_disconnect(conn->id);
 }
 
+//int on_connection(void *context)
+//{
+//  struct connection *conn = (struct connection *)context;
+//  struct ibv_send_wr wr, *bad_wr = NULL;
+//  struct ibv_sge sge;
+//
+//  snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
+//
+//  printf("connected. posting send...\n");
+//
+//  memset(&wr, 0, sizeof(wr));
+//
+//  wr.wr_id = (uintptr_t)conn;
+//  wr.opcode = IBV_WR_SEND;
+//  wr.sg_list = &sge;
+//  wr.num_sge = 1;
+//  wr.send_flags = IBV_SEND_SIGNALED;
+//
+//  sge.addr = (uintptr_t)conn->send_region;
+//  sge.length = BUFFER_SIZE;
+//  sge.lkey = conn->send_mr->lkey;
+//
+//  TEST_NZ(ibv_post_send(conn->qp, &wr, &bad_wr));
+//
+//  return 0;
+//}
+
 int on_connection(void *context)
 {
-  struct connection *conn = (struct connection *)context;
-  struct ibv_send_wr wr, *bad_wr = NULL;
-  struct ibv_sge sge;
+	struct connection *conn = (struct connection *)context;
+	struct ibv_send_wr wr, *bad_wr = NULL;
+	struct ibv_sge sge;
 
-  snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
+	snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
 
-  printf("connected. posting send...\n");
+	//@delee
+	strcpy(conn->send_region, "Send DATA using RDMA send.");
 
-  memset(&wr, 0, sizeof(wr));
+	printf("connected. posting send...\n");
 
-  wr.wr_id = (uintptr_t)conn;
-  wr.opcode = IBV_WR_SEND;
-  wr.sg_list = &sge;
-  wr.num_sge = 1;
-  wr.send_flags = IBV_SEND_SIGNALED;
+	memset(&wr, 0, sizeof(wr));
 
-  sge.addr = (uintptr_t)conn->send_region;
-  sge.length = BUFFER_SIZE;
-  sge.lkey = conn->send_mr->lkey;
+	wr.wr_id = (uintptr_t)conn;
+	wr.opcode = IBV_WR_SEND;
+	wr.sg_list = &sge;
+	wr.num_sge = 1;
+	wr.send_flags = IBV_SEND_SIGNALED;
 
-  TEST_NZ(ibv_post_send(conn->qp, &wr, &bad_wr));
+	sge.addr = (uintptr_t)conn->send_region;
+	sge.length = BUFFER_SIZE;
+	sge.lkey = conn->send_mr->lkey;
 
-  return 0;
+	TEST_NZ(ibv_post_send(conn->qp, &wr, &bad_wr));
+
+	return 0;
 }
 
 int on_disconnect(struct rdma_cm_id *id)

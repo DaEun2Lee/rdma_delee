@@ -13,22 +13,22 @@ const int BUFFER_SIZE = 1024;
 const int DEFAULT_PORT = 12345;
 
 struct context {
-  struct ibv_context *ctx;
-  struct ibv_pd *pd;
-  struct ibv_cq *cq;
-  struct ibv_comp_channel *comp_channel;
+	struct ibv_context *ctx;
+	struct ibv_pd *pd;
+	struct ibv_cq *cq;
+	struct ibv_comp_channel *comp_channel;
 
-  pthread_t cq_poller_thread;
+	pthread_t cq_poller_thread;
 };
 
 struct connection {
-  struct ibv_qp *qp;
+	struct ibv_qp *qp;
 
-  struct ibv_mr *recv_mr;
-  struct ibv_mr *send_mr;
+	struct ibv_mr *recv_mr;
+	struct ibv_mr *send_mr;
 
-  char *recv_region;
-  char *send_region;
+	char *recv_region;
+	char *send_region;
 };
 
 static void die(const char *reason);
@@ -50,13 +50,13 @@ static struct context *s_ctx = NULL;
 int main(int argc, char **argv)
 {
 #if _USE_IPV6
-  struct sockaddr_in6 addr;
+	struct sockaddr_in6 addr;
 #else
-  struct sockaddr_in addr;
+	struct sockaddr_in addr;
 #endif
-  struct rdma_cm_event *event = NULL;
-  struct rdma_cm_id *listener = NULL;
-  struct rdma_event_channel *ec = NULL;
+	struct rdma_cm_event *event = NULL;
+	struct rdma_cm_id *listener = NULL;
+	struct rdma_event_channel *ec = NULL;
 
 //	uint16_t port = 0;
 
@@ -69,30 +69,30 @@ int main(int argc, char **argv)
 	addr.sin_port = htons(DEFAULT_PORT);
 #endif
 
-  TEST_Z(ec = rdma_create_event_channel());
-  TEST_NZ(rdma_create_id(ec, &listener, NULL, RDMA_PS_TCP));
-  TEST_NZ(rdma_bind_addr(listener, (struct sockaddr *)&addr));
-  TEST_NZ(rdma_listen(listener, 10)); /* backlog=10 is arbitrary */
+	TEST_Z(ec = rdma_create_event_channel());
+	TEST_NZ(rdma_create_id(ec, &listener, NULL, RDMA_PS_TCP));
+	TEST_NZ(rdma_bind_addr(listener, (struct sockaddr *)&addr));
+	TEST_NZ(rdma_listen(listener, 10)); /* backlog=10 is arbitrary */
 
 //  port = ntohs(rdma_get_src_port(listener));
 //  printf("listening on port %d.\n", port);
 
 	printf("listening on port %d.\n", DEFAULT_PORT);
 
-  while (rdma_get_cm_event(ec, &event) == 0) {
-    struct rdma_cm_event event_copy;
+	while (rdma_get_cm_event(ec, &event) == 0) {
+		struct rdma_cm_event event_copy;
 
-    memcpy(&event_copy, event, sizeof(*event));
-    rdma_ack_cm_event(event);
+		memcpy(&event_copy, event, sizeof(*event));
+		rdma_ack_cm_event(event);
 
-    if (on_event(&event_copy))
-      break;
-  }
+		if (on_event(&event_copy))
+			break;
+	}
 
-  rdma_destroy_id(listener);
-  rdma_destroy_event_channel(ec);
+	rdma_destroy_id(listener);
+	rdma_destroy_event_channel(ec);
 
-  return 0;
+	return 0;
 }
 
 void die(const char *reason)
