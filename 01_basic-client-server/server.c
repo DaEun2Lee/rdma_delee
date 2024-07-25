@@ -8,6 +8,8 @@
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
 
 const int BUFFER_SIZE = 1024;
+//@delee
+//const char *DEFAULT_PORT = "12345";
 
 struct context {
   struct ibv_context *ctx;
@@ -54,7 +56,8 @@ int main(int argc, char **argv)
   struct rdma_cm_event *event = NULL;
   struct rdma_cm_id *listener = NULL;
   struct rdma_event_channel *ec = NULL;
-  uint16_t port = 0;
+//  uint16_t port = 0;
+	uint16_t port = 12345;
 
   memset(&addr, 0, sizeof(addr));
 #if _USE_IPV6

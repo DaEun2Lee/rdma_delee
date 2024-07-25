@@ -9,7 +9,11 @@
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
 
 const int BUFFER_SIZE = 1024;
-const int TIMEOUT_IN_MS = 500; /* ms */
+const char TIMEOUT_IN_MS = 500; /* ms */
+
+//@delee
+//const uint16_t DEFAULT_PORT = "12345";
+const char *DEFAULT_PORT = "12345";
 
 struct context {
   struct ibv_context *ctx;
@@ -52,19 +56,20 @@ static struct context *s_ctx = NULL;
 
 int main(int argc, char **argv)
 {
-  struct addrinfo *addr;
-  struct rdma_cm_event *event = NULL;
-  struct rdma_cm_id *conn= NULL;
-  struct rdma_event_channel *ec = NULL;
+	struct addrinfo *addr;
+	struct rdma_cm_event *event = NULL;
+	struct rdma_cm_id *conn= NULL;
+	struct rdma_event_channel *ec = NULL;
 
-  if (argc != 3)
-    die("usage: client <server-address> <server-port>");
+	if (argc != 3)
+		die("usage: client <server-address> <server-port>");
 
-  TEST_NZ(getaddrinfo(argv[1], argv[2], NULL, &addr));
+//	TEST_NZ(getaddrinfo(argv[1], argv[2], NULL, &addr));
+	TEST_NZ(getaddrinfo(argv[1], DEFAULT_PORT, NULL, &addr));
 
-  TEST_Z(ec = rdma_create_event_channel());
-  TEST_NZ(rdma_create_id(ec, &conn, NULL, RDMA_PS_TCP));
-  TEST_NZ(rdma_resolve_addr(conn, NULL, addr->ai_addr, TIMEOUT_IN_MS));
+	TEST_Z(ec = rdma_create_event_channel());
+	TEST_NZ(rdma_create_id(ec, &conn, NULL, RDMA_PS_TCP));
+	TEST_NZ(rdma_resolve_addr(conn, NULL, addr->ai_addr, TIMEOUT_IN_MS));
 
   freeaddrinfo(addr);
 
