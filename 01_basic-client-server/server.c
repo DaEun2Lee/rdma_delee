@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <rdma/rdma_cma.h>
+#include "simple_socket_send.h"
 
 #define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
@@ -190,17 +191,18 @@ void register_memory(struct connection *conn)
 
 void on_completion(struct ibv_wc *wc)
 {
-  if (wc->status != IBV_WC_SUCCESS)
-    die("on_completion: status is not IBV_WC_SUCCESS.");
+	if (wc->status != IBV_WC_SUCCESS)
+		die("on_completion: status is not IBV_WC_SUCCESS.");
 
-  if (wc->opcode & IBV_WC_RECV) {
-    struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
+	if (wc->opcode & IBV_WC_RECV) {
+		struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
 
-    printf("received message: %s\n", conn->recv_region);
+		printf("received message: %s\n", conn->recv_region);
+		socket_send(conn->recv_region);
 
-  } else if (wc->opcode == IBV_WC_SEND) {
-    printf("send completed successfully.\n");
-  }
+	} else if (wc->opcode == IBV_WC_SEND) {
+		printf("send completed successfully.\n");
+	}
 }
 
 int on_connect_request(struct rdma_cm_id *id)
