@@ -10,6 +10,7 @@
 const int BUFFER_SIZE = 1024;
 //@delee
 //const char *DEFAULT_PORT = "12345";
+const int DEFAULT_PORT = 12345;
 
 struct context {
   struct ibv_context *ctx;
@@ -56,14 +57,16 @@ int main(int argc, char **argv)
   struct rdma_cm_event *event = NULL;
   struct rdma_cm_id *listener = NULL;
   struct rdma_event_channel *ec = NULL;
-//  uint16_t port = 0;
-	uint16_t port = 12345;
 
-  memset(&addr, 0, sizeof(addr));
+//	uint16_t port = 0;
+
+	memset(&addr, 0, sizeof(addr));
 #if _USE_IPV6
-  addr.sin6_family = AF_INET6;
+	addr.sin6_family = AF_INET6;
+	addr.sin6_port = htons(DEFAULT_PORT);
 #else
-  addr.sin_family = AF_INET;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(DEFAULT_PORT);
 #endif
 
   TEST_Z(ec = rdma_create_event_channel());
@@ -71,9 +74,10 @@ int main(int argc, char **argv)
   TEST_NZ(rdma_bind_addr(listener, (struct sockaddr *)&addr));
   TEST_NZ(rdma_listen(listener, 10)); /* backlog=10 is arbitrary */
 
-  port = ntohs(rdma_get_src_port(listener));
+//  port = ntohs(rdma_get_src_port(listener));
+//  printf("listening on port %d.\n", port);
 
-  printf("listening on port %d.\n", port);
+	printf("listening on port %d.\n", DEFAULT_PORT);
 
   while (rdma_get_cm_event(ec, &event) == 0) {
     struct rdma_cm_event event_copy;
