@@ -2,8 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdatomic.h>
+#include <stdbool.h>
 #include <rdma/rdma_cma.h>
 #include "simple_socket_send.h"
+#include "test_socket.h"
 
 #define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
@@ -12,6 +15,11 @@ const int BUFFER_SIZE = 1024;
 //@delee
 //const char *DEFAULT_PORT = "12345";
 const int DEFAULT_PORT = 12345;
+//extern char sock_rdma_buffer[BUFFER_SIZE] = {0};
+//extern char rdma_sock_buffer[BUFFER_SIZE] = {0};
+//// Atomic flag to indicate if the buffer has changed
+//extern atomic_bool sock_rdma_buffer_changed = false;
+//extern atomic_bool rdma_sock_buffer_changed = false;
 
 struct context {
 	struct ibv_context *ctx;
@@ -40,6 +48,9 @@ static void * poll_cq(void *);
 static void post_receives(struct connection *conn);
 static void register_memory(struct connection *conn);
 
+//@delee
+bool has_buffer_changed();
+
 static void on_completion(struct ibv_wc *wc);
 static int on_connect_request(struct rdma_cm_id *id);
 static int on_connection(void *context);
@@ -50,6 +61,22 @@ static struct context *s_ctx = NULL;
 
 int main(int argc, char **argv)
 {
+	//@delee
+	//This part is socket <-> rdma
+        pthread_t server_tid, client_tid;
+
+        // 서버 스레드 생성
+        if (pthread_create(&server_tid, NULL, server_thread, NULL) != 0) {
+                perror("Failed to create server thread");
+        exit(EXIT_FAILURE);
+        }
+
+        // 클라이언트 스레드 생성
+        if (pthread_create(&client_tid, NULL, client_thread, NULL) != 0) {
+                perror("Failed to create client thread");
+        exit(EXIT_FAILURE);
+        }
+
 #if _USE_IPV6
 	struct sockaddr_in6 addr;
 #else
@@ -92,6 +119,10 @@ int main(int argc, char **argv)
 
 	rdma_destroy_id(listener);
 	rdma_destroy_event_channel(ec);
+
+	// 스레드가 종료될 때까지 대기
+        pthread_join(server_tid, NULL);
+        pthread_join(client_tid, NULL);
 
 	return 0;
 }
@@ -198,7 +229,14 @@ void on_completion(struct ibv_wc *wc)
 		struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
 
 		printf("received message: %s\n", conn->recv_region);
-		socket_send(conn->recv_region);
+		//@delee
+		//TODO
+		//Change func
+//		socket_send(conn->recv_region);
+		//send rdma -> socket
+//		rdma_sock_buffer = conn->recv_region;
+		memcpy(rdma_sock_buffer, conn->recv_region, BUFFER_SIZE);
+		atomic_store(&rdma_sock_buffer_changed, true);
 
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("send completed successfully.\n");
@@ -239,7 +277,13 @@ int on_connection(void *context)
 	snprintf(conn->send_region, BUFFER_SIZE, "message from passive/server side with pid %d", getpid());
 
 	//@delee
-        strcpy(conn->send_region, "Send DATA using RDMA send.");
+	//TODO
+	//Add soem func for 
+//	strcpy(conn->send_region, "Send DATA using RDMA send.");
+	if(atomic_load(&sock_rdma_buffer_changed)){
+		strcpy(conn->send_region, sock_rdma_buffer);
+		atomic_store(&sock_rdma_buffer_changed, false);
+	}
 
 	printf("connected. posting send...\n");
 

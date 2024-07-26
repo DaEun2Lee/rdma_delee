@@ -60,7 +60,7 @@ static int on_route_resolved(struct rdma_cm_id *id);
 static struct context *s_ctx = NULL;
 
 //@delee
-static int send_while(void *context);
+//static int send_while(void *context);
 
 int main(int argc, char **argv)
 {
