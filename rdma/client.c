@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <rdma/rdma_cma.h>
-
+ 
 #define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
 
@@ -59,6 +59,9 @@ static int on_route_resolved(struct rdma_cm_id *id);
 
 static struct context *s_ctx = NULL;
 
+//@delee
+static int send_while(void *context);
+
 int main(int argc, char **argv)
 {
 	struct addrinfo *addr;
@@ -71,9 +74,9 @@ int main(int argc, char **argv)
 
 //	TEST_NZ(getaddrinfo(argv[1], argv[2], NULL, &addr));
 
-	if (argc < 2)
-		die("usage: client <server-address> <server-port>");
-
+//	if (argc < 2)
+//		die("usage: client <server-address> <server-port>");
+//
 //	TEST_NZ(getaddrinfo(argv[1], DEFAULT_PORT, NULL, &addr));
 	TEST_NZ(getaddrinfo(DEFAULT_IP, DEFAULT_PORT, NULL, &addr));
 
@@ -90,6 +93,8 @@ int main(int argc, char **argv)
 
 		if (on_event(&event_copy))
 			break;
+		//@delee
+		//TODO
 	}
 
 	rdma_destroy_event_channel(ec);
@@ -218,20 +223,29 @@ int on_addr_resolved(struct rdma_cm_id *id)
 
 void on_completion(struct ibv_wc *wc)
 {
-  struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
+	struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
 
-  if (wc->status != IBV_WC_SUCCESS)
-    die("on_completion: status is not IBV_WC_SUCCESS.");
+	if (wc->status != IBV_WC_SUCCESS)
+		die("on_completion: status is not IBV_WC_SUCCESS.");
 
-  if (wc->opcode & IBV_WC_RECV)
-    printf("received message: %s\n", conn->recv_region);
-  else if (wc->opcode == IBV_WC_SEND)
-    printf("send completed successfully.\n");
-  else
-    die("on_completion: completion isn't a send or a receive.");
+	if (wc->opcode & IBV_WC_RECV) {
+		printf("received message: %s\n", conn->recv_region);
 
-  if (++conn->num_completions == 2)
-    rdma_disconnect(conn->id);
+	} else if (wc->opcode == IBV_WC_SEND) {
+		printf("send completed successfully.\n");
+
+		//@delee
+		//TODO
+		printf("Before : %s\n", conn->send_region);
+		conn->send_region = NULL;
+		printf("Before : %s\n", conn->send_region);
+
+	} else {
+		die("on_completion: completion isn't a send or a receive.");
+	}
+
+	if (++conn->num_completions == 2)
+		rdma_disconnect(conn->id);
 }
 
 //int on_connection(void *context)
@@ -269,8 +283,8 @@ int on_connection(void *context)
 
 	snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
 
-	//@delee
-	strcpy(conn->send_region, "Send DATA using RDMA send.");
+//	//@delee
+//	strcpy(conn->send_region, "Send DATA using RDMA send.");
 
 	printf("connected. posting send...\n");
 
@@ -293,41 +307,50 @@ int on_connection(void *context)
 
 int on_disconnect(struct rdma_cm_id *id)
 {
-  struct connection *conn = (struct connection *)id->context;
+	struct connection *conn = (struct connection *)id->context;
 
-  printf("disconnected.\n");
+	printf("disconnected.\n");
 
-  rdma_destroy_qp(id);
+	rdma_destroy_qp(id);
 
-  ibv_dereg_mr(conn->send_mr);
-  ibv_dereg_mr(conn->recv_mr);
+	ibv_dereg_mr(conn->send_mr);
+	ibv_dereg_mr(conn->recv_mr);
 
-  free(conn->send_region);
-  free(conn->recv_region);
+	free(conn->send_region);
+	free(conn->recv_region);
 
-  free(conn);
+	free(conn);
 
-  rdma_destroy_id(id);
+	rdma_destroy_id(id);
 
-  return 1; /* exit event loop */
+//	return 1; /* exit event loop */
+	return 0;
 }
 
 int on_event(struct rdma_cm_event *event)
 {
-  int r = 0;
+	int r = 0;
 
-  if (event->event == RDMA_CM_EVENT_ADDR_RESOLVED)
-    r = on_addr_resolved(event->id);
-  else if (event->event == RDMA_CM_EVENT_ROUTE_RESOLVED)
-    r = on_route_resolved(event->id);
-  else if (event->event == RDMA_CM_EVENT_ESTABLISHED)
-    r = on_connection(event->id->context);
-  else if (event->event == RDMA_CM_EVENT_DISCONNECTED)
-    r = on_disconnect(event->id);
-  else
-    die("on_event: unknown event.");
+	if (event->event == RDMA_CM_EVENT_ADDR_RESOLVED) {
+		r = on_addr_resolved(event->id);
 
-  return r;
+	} else if (event->event == RDMA_CM_EVENT_ROUTE_RESOLVED) {
+		r = on_route_resolved(event->id);
+
+	} else if (event->event == RDMA_CM_EVENT_ESTABLISHED) {
+		r = on_connection(event->id->context);
+		//@delee
+		//TODO
+		//Need to insert send func
+//		r = send_while(event->id->context);
+	} else if (event->event == RDMA_CM_EVENT_DISCONNECTED) {
+		r = on_disconnect(event->id);
+
+	}else {
+		die("on_event: unknown event.");
+	}
+
+	return r;
 }
 
 int on_route_resolved(struct rdma_cm_id *id)
@@ -340,4 +363,21 @@ int on_route_resolved(struct rdma_cm_id *id)
   TEST_NZ(rdma_connect(id, &cm_params));
 
   return 0;
+}
+
+//@delee
+//TODO
+int send_while(void *context)
+{
+	struct connection *conn = (struct connection *)context;
+	int r = 0;
+
+	printf("%s:\n", __func__);
+
+	if (conn->send_region == NULL){
+		strcpy(conn->send_region, "Send DATA using RDMA send.");
+		r = on_connection(context);
+	}
+
+	return r;
 }
