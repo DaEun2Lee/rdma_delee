@@ -139,11 +139,11 @@ int main() {
 	if (s_create_server())
 		printf("\n%s: Fail to create socket create\n", __func__);
 
-	int valread;
+//	int valread;
 
 //	while(1){
 		// 클라이언트로부터 데이터 수신
-//		int valread = read(new_socket, buffer, BUFFER_SIZE);
+		int valread = read(new_socket, buffer, BUFFER_SIZE);
 		valread = read(new_socket, buffer, SO_BUFFER_SIZE);
 		if (valread < 0) {
 			perror("read");
@@ -157,6 +157,7 @@ int main() {
 
 //	}
 
+	
 	// 소켓 종료
 //	s_close_server();
         // 소켓 종료
