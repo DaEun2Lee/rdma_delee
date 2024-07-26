@@ -8,17 +8,17 @@
 #define PORT 8080
 #define BUFFER_SIZE 1024
 
-#define SO_IP "10.0.0.1" //보내려는 주소
+#define SO_IP "127.0.0.1" //보내려는 주소
 
 
 void *server_thread(void *arg) {
-    int server_fd, new_socket;
-    struct sockaddr_in address;
-    int opt = 1;
-    int addrlen = sizeof(address);
-    char buffer[BUFFER_SIZE] = {0};
+	int server_fd, new_socket;
+	struct sockaddr_in address;
+	int opt = 1;
+	int addrlen = sizeof(address);
+	char buffer[BUFFER_SIZE] = {0};
 
-    // 소켓 파일 디스크립터 생성
+// 소켓 파일 디스크립터 생성
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
