@@ -240,6 +240,7 @@ void on_completion(struct ibv_wc *wc)
 
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("send completed successfully.\n");
+		 atomic_store(&rdma_sock_buffer_changed, false);
 	}
 }
 

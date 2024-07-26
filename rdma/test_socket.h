@@ -13,6 +13,8 @@
 
 //@delee
 #define SO_IP "127.0.0.1" //보내려는 주소
+//#define SND_PORT 8080
+//#define RCV_PORT 8081
 #define SO_BUFFER_SIZE 1024
 char sock_rdma_buffer[SO_BUFFER_SIZE] = {0};
 char rdma_sock_buffer[SO_BUFFER_SIZE] = {0};
