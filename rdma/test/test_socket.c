@@ -8,6 +8,8 @@
 #define PORT 8080
 #define BUFFER_SIZE 1024
 
+#define SO_IP "10.0.0.1" //보내려는 주소
+
 
 void *server_thread(void *arg) {
     int server_fd, new_socket;
@@ -95,7 +97,7 @@ void *client_thread(void *arg) {
     serv_addr.sin_port = htons(PORT);
 
     // IP 주소 변환 및 설정
-    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, SO_IP, &serv_addr.sin_addr) <= 0) {
         printf("\nInvalid address/ Address not supported \n");
         close(sock);
         pthread_exit(NULL);
