@@ -141,7 +141,7 @@ int main() {
 
 	int valread;
 
-	while(1){
+//	while(1){
 		// 클라이언트로부터 데이터 수신
 //		int valread = read(new_socket, buffer, BUFFER_SIZE);
 		valread = read(new_socket, buffer, SO_BUFFER_SIZE);
@@ -155,10 +155,12 @@ int main() {
 		// 수신한 데이터 출력
 		printf("Received data: %s\n", buffer);
 
-	}
+//	}
 
 	// 소켓 종료
-	s_close_server();
-
+//	s_close_server();
+        // 소켓 종료
+        close(new_socket);
+        close(server_fd);
 	return 0;
 }
