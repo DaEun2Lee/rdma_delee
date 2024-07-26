@@ -8,7 +8,8 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#define PORT 8080
+#define SND_PORT 8080
+#define RCV_PORT 8081
 #define BUFFER_SIZE 1024
 
 //@delee
@@ -61,7 +62,7 @@ void *server_thread(void *arg) {
 	// 주소와 포트 설정
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(PORT);
+	address.sin_port = htons(RCV_PORT);
 
 	// 소켓에 주소와 포트 바인딩
 	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
@@ -77,7 +78,7 @@ void *server_thread(void *arg) {
 		pthread_exit(NULL);
 	}
 
-	printf("Server listening on port %d\n", PORT);
+	printf("Server listening on port %d\n", RCV_PORT);
 
 	// 클라이언트의 연결 수락
 	if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
@@ -130,7 +131,7 @@ void *client_thread(void *arg) {
 	}
 
 	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(PORT);
+	serv_addr.sin_port = htons(SND_PORT);
 
 	// IP 주소 변환 및 설정
 	if (inet_pton(AF_INET, SO_IP, &serv_addr.sin_addr) <= 0) {
