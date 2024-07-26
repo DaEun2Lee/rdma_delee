@@ -344,8 +344,8 @@ int on_event(struct rdma_cm_event *event)
 		//Need to insert send func
 //		r = send_while(event->id->context);
 	} else if (event->event == RDMA_CM_EVENT_DISCONNECTED) {
-		r = on_disconnect(event->id);
-
+//		r = on_disconnect(event->id);
+		r = 0;
 	} else {
 		die("on_event: unknown event.");
 	}
