@@ -48,9 +48,6 @@ static void * poll_cq(void *);
 static void post_receives(struct connection *conn);
 static void register_memory(struct connection *conn);
 
-//@delee
-bool has_buffer_changed();
-
 static void on_completion(struct ibv_wc *wc);
 static int on_connect_request(struct rdma_cm_id *id);
 static int on_connection(void *context);
@@ -108,6 +105,9 @@ int main(int argc, char **argv)
 	printf("listening on port %d.\n", DEFAULT_PORT);
 
 	while (rdma_get_cm_event(ec, &event) == 0) {
+		//@delee
+		//TODO
+		// related disconnect
 		struct rdma_cm_event event_copy;
 
 		memcpy(&event_copy, event, sizeof(*event));
