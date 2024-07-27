@@ -92,12 +92,13 @@ int main(int argc, char **argv)
 		rdma_ack_cm_event(event);
 
 		if (on_event(&event_copy))
-			break;
+			printf("%s: break\n", __func__);
+//			break;
 		//@delee
 		//TODO
 	}
 
-	rdma_destroy_event_channel(ec);
+//	rdma_destroy_event_channel(ec);
 
 	return 0;
 }
