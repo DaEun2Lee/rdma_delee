@@ -58,6 +58,14 @@ static struct context *s_ctx = NULL;
 
 int main(int argc, char **argv)
 {
+	//Open result file
+	fptr = fopen("execution_time.txt", "w");
+		if (fptr == NULL) {
+			printf("Error: Open file!\n");
+			return 1;
+		}
+//	start = record_time_file(fptr, "start making threads");
+
 	//@delee
 	//This part is socket <-> rdma
         pthread_t server_tid, client_tid;
@@ -73,6 +81,10 @@ int main(int argc, char **argv)
                 perror("Failed to create client thread");
         exit(EXIT_FAILURE);
         }
+
+//	end = record_time_file(fptr, "end making threads");
+//	execution_time(fptr, start, end, "execution time of making threads")
+//	start = record_time_file(fptr, "start making address struct");
 
 #if _USE_IPV6
 	struct sockaddr_in6 addr;
@@ -94,14 +106,20 @@ int main(int argc, char **argv)
 	addr.sin_port = htons(DEFAULT_PORT);
 #endif
 
+//	end = record_time_file(fptr, "End making address struct");
+//	execution_time(fptr, start, end, "execution time of making addressd struct")
+//	start = record_time_file(fptr, "Start RDMA");
 	TEST_Z(ec = rdma_create_event_channel());
+//	start = record_time_file(fptr, "Start making creating event");
+	
+
 	TEST_NZ(rdma_create_id(ec, &listener, NULL, RDMA_PS_TCP));
 	TEST_NZ(rdma_bind_addr(listener, (struct sockaddr *)&addr));
 	TEST_NZ(rdma_listen(listener, 10)); /* backlog=10 is arbitrary */
 
 //  port = ntohs(rdma_get_src_port(listener));
 //  printf("listening on port %d.\n", port);
-
+	
 	printf("listening on port %d.\n", DEFAULT_PORT);
 
 	while (rdma_get_cm_event(ec, &event) == 0) {
@@ -119,6 +137,7 @@ int main(int argc, char **argv)
 
 	rdma_destroy_id(listener);
 	rdma_destroy_event_channel(ec);
+
 
 	// 스레드가 종료될 때까지 대기
         pthread_join(server_tid, NULL);
@@ -237,8 +256,11 @@ void on_completion(struct ibv_wc *wc)
 //		//This code inform that server have received data from rdma using atomic.
 //		memcpy(rdma_sock_buffer, conn->recv_region, BUFFER_SIZE);
 //		atomic_store(&rdma_sock_buffer_changed, true);
+		start = record_time_file(fptr, "Start of sending data using RDMA"); 
+
 		while(1){
 			if(rdma_sock_buffer.lock == false){
+//				start = record_time_file(fptr, "Start of sending data using RDMA");
 				rdma_sock_buffer.lock = true;
 				//TODO
 				// data 이어쓰기 
@@ -253,6 +275,8 @@ void on_completion(struct ibv_wc *wc)
 		}
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("send completed successfully.\n");
+		end = record_time_file(fptr, "End of sending data using RDMA");
+		execution_time(fptr, start, end, "Sending data using RDMA");
 		//@delee
 		// This code inform that server have received data from rdma using atomic.
 //		atomic_store(&rdma_sock_buffer_changed, false);
@@ -263,6 +287,9 @@ void on_completion(struct ibv_wc *wc)
 				memset(rdma_sock_buffer.data, 0, BUFFER_SIZE);
 				rdma_sock_buffer.length = 0;
 				rdma_sock_buffer.lock = false;
+
+
+//				end = record_time_file(fptrf "End of sending data using RDMA");
 				break;
 			} else
 				sleep(1);

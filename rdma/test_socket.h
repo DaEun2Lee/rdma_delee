@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include "common.h"
 
 #define PORT 8080
 //#define BUFFER_SIZE 1024
@@ -114,6 +115,7 @@ void *server_thread(void *arg) {
 		//This code inform that server have received data from rdma using atomic.
 //		memcpy(sock_rdma_buffer, buffer, SO_BUFFER_SIZE);
 //		atomic_store(&sock_rdma_buffer_changed, true);
+
 
 		while(sock_rdma_buffer.length == 0){
 			if(sock_rdma_buffer.lock == false){
