@@ -254,46 +254,46 @@ void on_completion(struct ibv_wc *wc)
 		//send rdma -> socket
 //		rdma_sock_buffer = conn->recv_region;
 //		//This code inform that server have received data from rdma using atomic.
-//		memcpy(rdma_sock_buffer, conn->recv_region, BUFFER_SIZE);
-//		atomic_store(&rdma_sock_buffer_changed, true);
+		memcpy(rdma_sock_buffer, conn->recv_region, BUFFER_SIZE);
+		atomic_store(&rdma_sock_buffer_changed, true);
 		start = record_time_file(fptr, "Start of sending data using RDMA"); 
 
-		while(1){
-			if(rdma_sock_buffer.lock == false){
-//				start = record_time_file(fptr, "Start of sending data using RDMA");
-				rdma_sock_buffer.lock = true;
-				//TODO
-				// data 이어쓰기 
-				memcpy(rdma_sock_buffer.data, conn->recv_region, BUFFER_SIZE);
-	//			rdma_sock_buffer.data = {0};
-	//			rdma_sock_buffer.change = true;
-				rdma_sock_buffer.length = BUFFER_SIZE;
-				rdma_sock_buffer.lock = false;
-				break;
-			} else
-				sleep(1);
-		}
+//		while(1){
+//			if(rdma_sock_buffer.lock == false){
+////				start = record_time_file(fptr, "Start of sending data using RDMA");
+//				rdma_sock_buffer.lock = true;
+//				//TODO
+//				// data 이어쓰기 
+//				memcpy(rdma_sock_buffer.data, conn->recv_region, BUFFER_SIZE);
+//	//			rdma_sock_buffer.data = {0};
+//	//			rdma_sock_buffer.change = true;
+//				rdma_sock_buffer.length = BUFFER_SIZE;
+//				rdma_sock_buffer.lock = false;
+//				break;
+//			} else
+//				sleep(1);
+//		}
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("send completed successfully.\n");
 		end = record_time_file(fptr, "End of sending data using RDMA");
 		execution_time(fptr, start, end, "Sending data using RDMA");
 		//@delee
 		// This code inform that server have received data from rdma using atomic.
-//		atomic_store(&rdma_sock_buffer_changed, false);
-		while(1){
-			if(rdma_sock_buffer.lock == false){
-				rdma_sock_buffer.lock = true;
-//				rdma_sock_buffer.data = {0};
-				memset(rdma_sock_buffer.data, 0, BUFFER_SIZE);
-				rdma_sock_buffer.length = 0;
-				rdma_sock_buffer.lock = false;
-
-
-//				end = record_time_file(fptrf "End of sending data using RDMA");
-				break;
-			} else
-				sleep(1);
-		}
+		atomic_store(&rdma_sock_buffer_changed, false);
+//		while(1){
+//			if(rdma_sock_buffer.lock == false){
+//				rdma_sock_buffer.lock = true;
+////				rdma_sock_buffer.data = {0};
+//				memset(rdma_sock_buffer.data, 0, BUFFER_SIZE);
+//				rdma_sock_buffer.length = 0;
+//				rdma_sock_buffer.lock = false;
+//
+//
+////				end = record_time_file(fptrf "End of sending data using RDMA");
+//				break;
+//			} else
+//				sleep(1);
+//		}
 	}
 }
 
@@ -334,23 +334,23 @@ int on_connection(void *context)
 	//wTODO
 //	strcpy(conn->send_region, "Send DATA using RDMA send.");
 //	//This code inform that server have received data from sock using atomic.
-//	if(atomic_load(&sock_rdma_buffer_changed)){
-//		strcpy(conn->send_region, sock_rdma_buffer);
-//		atomic_store(&sock_rdma_buffer_changed, false);
-//	}
-	while(sock_rdma_buffer.length > 0){
-		if(sock_rdma_buffer.lock == false){
-			sock_rdma_buffer.lock = true;
-			memcpy(conn->send_region, sock_rdma_buffer.data, BUFFER_SIZE);
-//			sock_rdma_buffer.data = {0};
-			memset(rdma_sock_buffer.data, 0, BUFFER_SIZE);
-//			sock_rdma_buffer.change = false;
-			sock_rdma_buffer.length = 0;
-			sock_rdma_buffer.lock = false;
-			break;
-		} else
-			sleep(1);
-        }
+	if(atomic_load(&sock_rdma_buffer_changed)){
+		strcpy(conn->send_region, sock_rdma_buffer);
+		atomic_store(&sock_rdma_buffer_changed, false);
+	}
+//	while(sock_rdma_buffer.length > 0){
+//		if(sock_rdma_buffer.lock == false){
+//			sock_rdma_buffer.lock = true;
+//			memcpy(conn->send_region, sock_rdma_buffer.data, BUFFER_SIZE);
+////			sock_rdma_buffer.data = {0};
+//			memset(rdma_sock_buffer.data, 0, BUFFER_SIZE);
+////			sock_rdma_buffer.change = false;
+//			sock_rdma_buffer.length = 0;
+//			sock_rdma_buffer.lock = false;
+//			break;
+//		} else
+//			sleep(1);
+//        }
 
 	printf("connected. posting send...\n");
 

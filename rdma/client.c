@@ -237,9 +237,9 @@ void on_completion(struct ibv_wc *wc)
 
 		//@delee
 		//TODO
-		printf("Before : %s\n", conn->send_region);
-		conn->send_region = NULL;
-		printf("Before : %s\n", conn->send_region);
+//		printf("Before : %s\n", conn->send_region);
+//		conn->send_region = NULL;
+//		printf("Before : %s\n", conn->send_region);
 
 	} else {
 		die("on_completion: completion isn't a send or a receive.");
