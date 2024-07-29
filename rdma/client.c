@@ -16,11 +16,11 @@ const int TIMEOUT_IN_MS = 500;
 const char *DEFAULT_IP = "10.0.0.1";
 const char *DEFAULT_PORT = "12345";
 //const int DEFAULT_PORT = 12345;
+char message[1024];
 
 struct context {
 //	//@delee
 //	char *buffer;
-
   struct ibv_context *ctx;
   struct ibv_pd *pd;
   struct ibv_cq *cq;
@@ -79,12 +79,26 @@ int main(int argc, char **argv)
 //
 //	TEST_NZ(getaddrinfo(argv[1], DEFAULT_PORT, NULL, &addr));
 	TEST_NZ(getaddrinfo(DEFAULT_IP, DEFAULT_PORT, NULL, &addr));
-
 	TEST_Z(ec = rdma_create_event_channel());
 	TEST_NZ(rdma_create_id(ec, &conn, NULL, RDMA_PS_TCP));
 	TEST_NZ(rdma_resolve_addr(conn, NULL, addr->ai_addr, TIMEOUT_IN_MS));
 
 	freeaddrinfo(addr);
+
+	//@delee
+	//Input file contents in rdma_region.
+	FILE *file;
+//	char message[BUFFER_SIZE];
+	file = fopen("request.txt", "r");
+	if (file == NULL) {
+		perror("Failed to open file");
+		return 1;
+	}
+	size_t bytesRead = fread(message, sizeof(char), BUFFER_SIZE - 1, file);
+//	message[bytesRead] = '\0';
+	fclose(file);
+//	strcpy(event->id->context->send_region, message);
+
 	while (rdma_get_cm_event(ec, &event) == 0) {
 		struct rdma_cm_event event_copy;
 
@@ -285,7 +299,9 @@ int on_connection(void *context)
 	snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
 
 //	//@delee
-//	strcpy(conn->send_region, "Send DATA using RDMA send.");
+	//Input message
+//	strcpy(conn->send_region, message);
+	memcpy(conn->send_region, message, BUFFER_SIZE);
 
 	printf("connected. posting send...\n");
 

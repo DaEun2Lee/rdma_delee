@@ -14,7 +14,7 @@
 //#define BUFFER_SIZE 1024
 
 //@delee
-#define SO_IP "10.20.16.78" //보내려는 주소
+#define SO_IP "10.20.17.168" //보내려는 주소
 //#define SND_PORT 3301
 //#define RCV_PORT 8080
 #define SO_BUFFER_SIZE 1024
