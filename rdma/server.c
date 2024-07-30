@@ -60,10 +60,10 @@ int main(int argc, char **argv)
 {
 	//Open result file
 	fptr = fopen("execution_time.txt", "w");
-		if (fptr == NULL) {
-			printf("Error: Open file!\n");
-			return 1;
-		}
+	if (fptr == NULL) {
+		printf("Error: Open file!\n");
+		return 1;
+	}
 //	start = record_time_file(fptr, "start making threads");
 
 	//@delee
@@ -73,13 +73,13 @@ int main(int argc, char **argv)
         // 서버 스레드 생성
         if (pthread_create(&server_tid, NULL, server_thread, NULL) != 0) {
                 perror("Failed to create server thread");
-        exit(EXIT_FAILURE);
+	        exit(EXIT_FAILURE);
         }
 
         // 클라이언트 스레드 생성
         if (pthread_create(&client_tid, NULL, client_thread, NULL) != 0) {
                 perror("Failed to create client thread");
-        exit(EXIT_FAILURE);
+        	exit(EXIT_FAILURE);
         }
 
 //	end = record_time_file(fptr, "end making threads");
@@ -111,7 +111,6 @@ int main(int argc, char **argv)
 //	start = record_time_file(fptr, "Start RDMA");
 	TEST_Z(ec = rdma_create_event_channel());
 //	start = record_time_file(fptr, "Start making creating event");
-	
 
 	TEST_NZ(rdma_create_id(ec, &listener, NULL, RDMA_PS_TCP));
 	TEST_NZ(rdma_bind_addr(listener, (struct sockaddr *)&addr));
@@ -119,7 +118,7 @@ int main(int argc, char **argv)
 
 //  port = ntohs(rdma_get_src_port(listener));
 //  printf("listening on port %d.\n", port);
-	
+
 	printf("listening on port %d.\n", DEFAULT_PORT);
 
 	while (rdma_get_cm_event(ec, &event) == 0) {
@@ -148,95 +147,95 @@ int main(int argc, char **argv)
 
 void die(const char *reason)
 {
-  fprintf(stderr, "%s\n", reason);
-  exit(EXIT_FAILURE);
+	fprintf(stderr, "%s\n", reason);
+	exit(EXIT_FAILURE);
 }
 
 void build_context(struct ibv_context *verbs)
 {
-  if (s_ctx) {
-    if (s_ctx->ctx != verbs)
-      die("cannot handle events in more than one context.");
+	if (s_ctx) {
+		if (s_ctx->ctx != verbs)
+			die("cannot handle events in more than one context.");
 
-    return;
-  }
+		return;
+	}
 
-  s_ctx = (struct context *)malloc(sizeof(struct context));
+	s_ctx = (struct context *)malloc(sizeof(struct context));
 
-  s_ctx->ctx = verbs;
+	s_ctx->ctx = verbs;
 
-  TEST_Z(s_ctx->pd = ibv_alloc_pd(s_ctx->ctx));
-  TEST_Z(s_ctx->comp_channel = ibv_create_comp_channel(s_ctx->ctx));
-  TEST_Z(s_ctx->cq = ibv_create_cq(s_ctx->ctx, 10, NULL, s_ctx->comp_channel, 0)); /* cqe=10 is arbitrary */
-  TEST_NZ(ibv_req_notify_cq(s_ctx->cq, 0));
+	TEST_Z(s_ctx->pd = ibv_alloc_pd(s_ctx->ctx));
+	TEST_Z(s_ctx->comp_channel = ibv_create_comp_channel(s_ctx->ctx));
+	TEST_Z(s_ctx->cq = ibv_create_cq(s_ctx->ctx, 10, NULL, s_ctx->comp_channel, 0)); /* cqe=10 is arbitrary */
+	TEST_NZ(ibv_req_notify_cq(s_ctx->cq, 0));
 
-  TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
+	TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
 }
 
 void build_qp_attr(struct ibv_qp_init_attr *qp_attr)
 {
-  memset(qp_attr, 0, sizeof(*qp_attr));
+	memset(qp_attr, 0, sizeof(*qp_attr));
 
-  qp_attr->send_cq = s_ctx->cq;
-  qp_attr->recv_cq = s_ctx->cq;
-  qp_attr->qp_type = IBV_QPT_RC;
+	qp_attr->send_cq = s_ctx->cq;
+	qp_attr->recv_cq = s_ctx->cq;
+	qp_attr->qp_type = IBV_QPT_RC;
 
-  qp_attr->cap.max_send_wr = 10;
-  qp_attr->cap.max_recv_wr = 10;
-  qp_attr->cap.max_send_sge = 1;
-  qp_attr->cap.max_recv_sge = 1;
+	qp_attr->cap.max_send_wr = 10;
+	qp_attr->cap.max_recv_wr = 10;
+	qp_attr->cap.max_send_sge = 1;
+	qp_attr->cap.max_recv_sge = 1;
 }
 
 void * poll_cq(void *ctx)
 {
-  struct ibv_cq *cq;
-  struct ibv_wc wc;
+	struct ibv_cq *cq;
+	struct ibv_wc wc;
 
-  while (1) {
-    TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ctx));
-    ibv_ack_cq_events(cq, 1);
-    TEST_NZ(ibv_req_notify_cq(cq, 0));
+	while (1) {
+		TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ctx));
+		ibv_ack_cq_events(cq, 1);
+		TEST_NZ(ibv_req_notify_cq(cq, 0));
 
-    while (ibv_poll_cq(cq, 1, &wc))
-      on_completion(&wc);
-  }
+		while (ibv_poll_cq(cq, 1, &wc))
+			on_completion(&wc);
+	}
 
-  return NULL;
+	return NULL;
 }
 
 void post_receives(struct connection *conn)
 {
-  struct ibv_recv_wr wr, *bad_wr = NULL;
-  struct ibv_sge sge;
+	struct ibv_recv_wr wr, *bad_wr = NULL;
+	struct ibv_sge sge;
 
-  wr.wr_id = (uintptr_t)conn;
-  wr.next = NULL;
-  wr.sg_list = &sge;
-  wr.num_sge = 1;
+	wr.wr_id = (uintptr_t)conn;
+	wr.next = NULL;
+	wr.sg_list = &sge;
+	wr.num_sge = 1;
 
-  sge.addr = (uintptr_t)conn->recv_region;
-  sge.length = BUFFER_SIZE;
-  sge.lkey = conn->recv_mr->lkey;
+	sge.addr = (uintptr_t)conn->recv_region;
+	sge.length = BUFFER_SIZE;
+	sge.lkey = conn->recv_mr->lkey;
 
-  TEST_NZ(ibv_post_recv(conn->qp, &wr, &bad_wr));
+	TEST_NZ(ibv_post_recv(conn->qp, &wr, &bad_wr));
 }
 
 void register_memory(struct connection *conn)
 {
-  conn->send_region = malloc(BUFFER_SIZE);
-  conn->recv_region = malloc(BUFFER_SIZE);
+	conn->send_region = malloc(BUFFER_SIZE);
+	conn->recv_region = malloc(BUFFER_SIZE);
 
-  TEST_Z(conn->send_mr = ibv_reg_mr(
-    s_ctx->pd,
-    conn->send_region,
-    BUFFER_SIZE,
-    0));
+	TEST_Z(conn->send_mr = ibv_reg_mr(
+		s_ctx->pd,
+		conn->send_region,
+		BUFFER_SIZE,
+		0));
 
-  TEST_Z(conn->recv_mr = ibv_reg_mr(
-    s_ctx->pd,
-    conn->recv_region,
-    BUFFER_SIZE,
-    IBV_ACCESS_LOCAL_WRITE));
+	TEST_Z(conn->recv_mr = ibv_reg_mr(
+		s_ctx->pd,
+		conn->recv_region,
+		BUFFER_SIZE,
+		IBV_ACCESS_LOCAL_WRITE));
 }
 
 void on_completion(struct ibv_wc *wc)
@@ -253,47 +252,44 @@ void on_completion(struct ibv_wc *wc)
 		//Change func
 		//send rdma -> socket
 //		rdma_sock_buffer = conn->recv_region;
-//		//This code inform that server have received data from rdma using atomic.
-		memcpy(rdma_sock_buffer, conn->recv_region, BUFFER_SIZE);
-		atomic_store(&rdma_sock_buffer_changed, true);
-		start = record_time_file(fptr, "Start of sending data using RDMA"); 
+////		//This code inform that server have received data from rdma using atomic.
+//		memcpy(rdma_sock_buffer, conn->recv_region, BUFFER_SIZE);
+//		atomic_store(&rdma_sock_buffer_changed, true);
+//		start = record_time_file(fptr, "Start of sending data using RDMA"); 
 
-//		while(1){
-//			if(rdma_sock_buffer.lock == false){
-////				start = record_time_file(fptr, "Start of sending data using RDMA");
-//				rdma_sock_buffer.lock = true;
-//				//TODO
-//				// data 이어쓰기 
-//				memcpy(rdma_sock_buffer.data, conn->recv_region, BUFFER_SIZE);
-//	//			rdma_sock_buffer.data = {0};
-//	//			rdma_sock_buffer.change = true;
-//				rdma_sock_buffer.length = BUFFER_SIZE;
-//				rdma_sock_buffer.lock = false;
-//				break;
-//			} else
-//				sleep(1);
-//		}
+		while(1){
+			if(rdma_sock_buffer.lock == false){
+				start = record_time_file(fptr, "Start of sending data using RDMA");
+				rdma_sock_buffer.lock = true;
+				//TODO
+				// data 이어쓰기 
+				memcpy(rdma_sock_buffer.data, conn->recv_region, BUFFER_SIZE);
+	//			rdma_sock_buffer.change = true;
+				rdma_sock_buffer.length = BUFFER_SIZE;
+				rdma_sock_buffer.lock = false;
+				break;
+			} else
+				sleep(1);
+		}
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("send completed successfully.\n");
 		end = record_time_file(fptr, "End of sending data using RDMA");
 		execution_time(fptr, start, end, "Sending data using RDMA");
 		//@delee
-		// This code inform that server have received data from rdma using atomic.
-		atomic_store(&rdma_sock_buffer_changed, false);
-//		while(1){
-//			if(rdma_sock_buffer.lock == false){
-//				rdma_sock_buffer.lock = true;
-////				rdma_sock_buffer.data = {0};
-//				memset(rdma_sock_buffer.data, 0, BUFFER_SIZE);
-//				rdma_sock_buffer.length = 0;
-//				rdma_sock_buffer.lock = false;
-//
-//
-////				end = record_time_file(fptrf "End of sending data using RDMA");
-//				break;
-//			} else
-//				sleep(1);
-//		}
+//		// This code inform that server have received data from rdma using atomic.
+//		atomic_store(&rdma_sock_buffer_changed, false);
+		while(1){
+			if(rdma_sock_buffer.lock == false){
+				rdma_sock_buffer.lock = true;
+//				rdma_sock_buffer.data = {0};
+				memset(rdma_sock_buffer.data, 0, BUFFER_SIZE);
+				rdma_sock_buffer.length = 0;
+				rdma_sock_buffer.lock = false;
+//				end = record_time_file(fptrf "End of sending data using RDMA");
+				break;
+			} else
+				sleep(1);
+		}
 	}
 }
 
@@ -328,29 +324,30 @@ int on_connection(void *context)
 	struct ibv_send_wr wr, *bad_wr = NULL;
 	struct ibv_sge sge;
 
-	snprintf(conn->send_region, BUFFER_SIZE, "message from passive/server side with pid %d", getpid());
+//	snprintf(conn->send_region, BUFFER_SIZE, "message from passive/server side with pid %d", getpid());
 
 	//@delee
 	//wTODO
 //	strcpy(conn->send_region, "Send DATA using RDMA send.");
 //	//This code inform that server have received data from sock using atomic.
-	if(atomic_load(&sock_rdma_buffer_changed)){
-		strcpy(conn->send_region, sock_rdma_buffer);
-		atomic_store(&sock_rdma_buffer_changed, false);
-	}
-//	while(sock_rdma_buffer.length > 0){
-//		if(sock_rdma_buffer.lock == false){
-//			sock_rdma_buffer.lock = true;
-//			memcpy(conn->send_region, sock_rdma_buffer.data, BUFFER_SIZE);
-////			sock_rdma_buffer.data = {0};
-//			memset(rdma_sock_buffer.data, 0, BUFFER_SIZE);
-////			sock_rdma_buffer.change = false;
-//			sock_rdma_buffer.length = 0;
-//			sock_rdma_buffer.lock = false;
-//			break;
-//		} else
-//			sleep(1);
-//        }
+//	if(atomic_load(&sock_rdma_buffer_changed)){
+////		strcpy(conn->send_region, sock_rdma_buffer);
+//		memcpy(conn->send_region, sock_rdma_buffer, BUFFER_SIZE);
+//		atomic_store(&sock_rdma_buffer_changed, false);
+//	}
+	while(sock_rdma_buffer.length > 0){
+		if(sock_rdma_buffer.lock == false){
+			sock_rdma_buffer.lock = true;
+			memcpy(conn->send_region, sock_rdma_buffer.data, BUFFER_SIZE);
+//			sock_rdma_buffer.data = {0};
+			memset(rdma_sock_buffer.data, 0, BUFFER_SIZE);
+//			sock_rdma_buffer.change = false;
+			sock_rdma_buffer.length = 0;
+			sock_rdma_buffer.lock = false;
+			break;
+		} else
+			sleep(1);
+        }
 
 	printf("connected. posting send...\n");
 
@@ -372,38 +369,38 @@ int on_connection(void *context)
 
 int on_disconnect(struct rdma_cm_id *id)
 {
-  struct connection *conn = (struct connection *)id->context;
+	struct connection *conn = (struct connection *)id->context;
 
-  printf("peer disconnected.\n");
+	printf("peer disconnected.\n");
 
-  rdma_destroy_qp(id);
+	rdma_destroy_qp(id);
 
-  ibv_dereg_mr(conn->send_mr);
-  ibv_dereg_mr(conn->recv_mr);
+	ibv_dereg_mr(conn->send_mr);
+	ibv_dereg_mr(conn->recv_mr);
 
-  free(conn->send_region);
-  free(conn->recv_region);
+	free(conn->send_region);
+	free(conn->recv_region);
 
-  free(conn);
+	free(conn);
 
-  rdma_destroy_id(id);
+	rdma_destroy_id(id);
 
-  return 0;
+	return 0;
 }
 
 int on_event(struct rdma_cm_event *event)
 {
-  int r = 0;
+	int r = 0;
 
-  if (event->event == RDMA_CM_EVENT_CONNECT_REQUEST)
-    r = on_connect_request(event->id);
-  else if (event->event == RDMA_CM_EVENT_ESTABLISHED)
-    r = on_connection(event->id->context);
-  else if (event->event == RDMA_CM_EVENT_DISCONNECTED)
-    r = on_disconnect(event->id);
-  else
-    die("on_event: unknown event.");
+	if (event->event == RDMA_CM_EVENT_CONNECT_REQUEST)
+		r = on_connect_request(event->id);
+	else if (event->event == RDMA_CM_EVENT_ESTABLISHED)
+		r = on_connection(event->id->context);
+	else if (event->event == RDMA_CM_EVENT_DISCONNECTED)
+		r = on_disconnect(event->id);
+	else
+		die("on_event: unknown event.");
 
-  return r;
+	return r;
 }
 

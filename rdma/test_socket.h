@@ -10,29 +10,30 @@
 #include "common.h"
 
 //#define PORT 8080
-//#define PORT 3301
 //#define BUFFER_SIZE 1024
 
 //@delee
-#define SO_IP "10.20.17.168" //보내려는 주소
-#define SND_PORT 8080
-#define RCV_PORT 3301
+#define SO_IP "10.20.17.168" //Dest IP
+//sock-> wanproxy
+#define SND_PORT 3300
+//sock -> rdma
+#define RCV_PORT 8080
 #define SO_BUFFER_SIZE 1024
-char sock_rdma_buffer[SO_BUFFER_SIZE] = {0};
-char rdma_sock_buffer[SO_BUFFER_SIZE] = {0};
+//char sock_rdma_buffer[SO_BUFFER_SIZE] = {0};
+//char rdma_sock_buffer[SO_BUFFER_SIZE] = {0};
 //// Atomic flag to indicate if the buffer has changed
-atomic_bool sock_rdma_buffer_changed = false;
-atomic_bool rdma_sock_buffer_changed = false;
+//atomic_bool sock_rdma_buffer_changed = false;
+//atomic_bool rdma_sock_buffer_changed = false;
 
-//struct SO_buffer {
-//	char data[SO_BUFFER_SIZE];
-//	bool lock;
-////	bool change;
-//	int length;
-//};
+struct SO_buffer {
+	char data[SO_BUFFER_SIZE];
+	bool lock;
+//	bool change;
+	int length;
+};
 
-//struct SO_buffer  sock_rdma_buffer = { {0}, false, 0 };
-//struct SO_buffer  rdma_sock_buffer = { {0}, false, 0 };
+struct SO_buffer  sock_rdma_buffer = { {0}, false, 0 };
+struct SO_buffer  rdma_sock_buffer = { {0}, false, 0 };
 
 //void append_data(struct SO_buffer buffer, char * data)
 //{
@@ -113,21 +114,21 @@ void *server_thread(void *arg) {
 		//TODO
 		//RDMA
 //		sock_rdma_buffer = buffer;
-		//This code inform that server have received data from rdma using atomic.
-		memcpy(sock_rdma_buffer, buffer, SO_BUFFER_SIZE);
-		atomic_store(&sock_rdma_buffer_changed, true);
+//		//This code inform that server have received data from rdma using atomic.
+//		memcpy(sock_rdma_buffer, buffer, SO_BUFFER_SIZE);
+//		atomic_store(&sock_rdma_buffer_changed, true);
 
 
-//		while(sock_rdma_buffer.length == 0){
-//			if(sock_rdma_buffer.lock == false){
-//				sock_rdma_buffer.lock = true;
-//				memcpy(sock_rdma_buffer.data, buffer, SO_BUFFER_SIZE);
-//				sock_rdma_buffer.length = SO_BUFFER_SIZE;
-//				sock_rdma_buffer.lock = false;
-//				break;
-//			} else
-//				sleep(1);
-//		}
+		while(sock_rdma_buffer.length == 0){
+			if(sock_rdma_buffer.lock == false){
+				sock_rdma_buffer.lock = true;
+				memcpy(sock_rdma_buffer.data, buffer, SO_BUFFER_SIZE);
+				sock_rdma_buffer.length = SO_BUFFER_SIZE;
+				sock_rdma_buffer.lock = false;
+				break;
+			} else
+				sleep(1);
+		}
 	}
 
 	// 소켓 종료
@@ -173,32 +174,44 @@ void *client_thread(void *arg) {
 		//@delee
 		//TODO
 //		//This code inform that server have received rdma from sock using atomic.
-		if(atomic_load(&rdma_sock_buffer_changed)){
-			strcpy(message, rdma_sock_buffer);
-			atomic_store(&rdma_sock_buffer_changed, false);
-		}
-
-//		while(rdma_sock_buffer.length > 0 ){
-//			if(rdma_sock_buffer.lock == false){
-//				rdma_sock_buffer.lock = true;
-//				memcpy(message, rdma_sock_buffer.data, SO_BUFFER_SIZE);
-////				rdma_sock_buffer.data = {0};
-//				memset(rdma_sock_buffer.data, 0, SO_BUFFER_SIZE);
-//				rdma_sock_buffer.length = 0;
-//				rdma_sock_buffer.lock = false;
-//				break;
-//			} else
-//				sleep(1);
+//		if(atomic_load(&rdma_sock_buffer_changed)){
+//			strcpy(message, rdma_sock_buffer);
+//			atomic_store(&rdma_sock_buffer_changed, false);
 //		}
+
+		while(rdma_sock_buffer.length > 0 ){
+			if(rdma_sock_buffer.lock == false){
+				rdma_sock_buffer.lock = true;
+				memcpy(message, rdma_sock_buffer.data, SO_BUFFER_SIZE);
+				memset(rdma_sock_buffer.data, 0, SO_BUFFER_SIZE);
+				rdma_sock_buffer.length = 0;
+				rdma_sock_buffer.lock = false;
+				break;
+			} else
+				sleep(1);
+		}
 
 		// 메시지 전송
 		send(sock, message, strlen(message), 0);
-		printf("Client sent message: %s\n", message);
+		printf("Sock-Client sent message: %s\n", message);
 
 		// 서버로부터의 응답 읽기 (선택 사항)
 		int valread = read(sock, buffer, SO_BUFFER_SIZE);
 		if (valread > 0) {
-			printf("Client received response: %s\n", buffer);
+			printf("%s: Sock-Client received response: %s\n", __func__, buffer);
+
+			while(1){
+				if(sock_rdma_buffer.lock == false){
+					sock_rdma_buffer.lock = true;
+					//@delee
+					//TODO
+					memcpy(sock_rdma_buffer.data, buffer, SO_BUFFER_SIZE);
+					sock_rdma_buffer.length = SO_BUFFER_SIZE;
+					sock_rdma_buffer.lock = false;
+					break;
+				} else 
+					sleep(1);
+			}
 		}
 	}
 

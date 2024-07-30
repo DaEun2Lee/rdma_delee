@@ -10,7 +10,7 @@
 
 const int BUFFER_SIZE = 1024;
 //const char TIMEOUT_IN_MS = 500; /* ms */
-const int TIMEOUT_IN_MS = 500;
+const int TIMEOUT_IN_MS = 50000;
 
 //@delee
 const char *DEFAULT_IP = "10.0.0.1";
@@ -244,23 +244,23 @@ void on_completion(struct ibv_wc *wc)
 		die("on_completion: status is not IBV_WC_SUCCESS.");
 
 	if (wc->opcode & IBV_WC_RECV) {
-		printf("received message: %s\n", conn->recv_region);
+		printf("RDMA-Client received message: \n%s\n", conn->recv_region);
 
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("send completed successfully.\n");
 
 		//@delee
 		//TODO
-//		printf("Before : %s\n", conn->send_region);
-//		conn->send_region = NULL;
+		printf("RDMA-Client send message : %s\n", conn->send_region);
+		conn->send_region = NULL;
 //		printf("Before : %s\n", conn->send_region);
 
 	} else {
 		die("on_completion: completion isn't a send or a receive.");
 	}
 
-	if (++conn->num_completions == 2)
-		rdma_disconnect(conn->id);
+//	if (++conn->num_completions == 2)
+//		rdma_disconnect(conn->id);
 }
 
 //int on_connection(void *context)
@@ -395,6 +395,7 @@ int send_while(void *context)
 	while(1){
 		if (conn->send_region == NULL){
 			strcpy(conn->send_region, "Send DATA using RDMA send.");
+//			memcpy()
 			r = on_connection(context);
 			k++;
 		}
