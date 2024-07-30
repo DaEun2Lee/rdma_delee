@@ -1,6 +1,6 @@
-ONY: clean
+.PHONY: clean
 
-CFLAGS  := -Wall -g -o
+CFLAGS  := -Wall -g
 LDLIBS  := ${LDLIBS} -lrdmacm -libverbs -lpthread
 
 APPS    := server client

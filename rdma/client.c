@@ -4,7 +4,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <rdma/rdma_cma.h>
- 
+//#include "test_socket.h"
+#include <rdma/rdma_verbs.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
+
 #define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
 
@@ -15,31 +21,29 @@ const int TIMEOUT_IN_MS = 50000;
 //@delee
 const char *DEFAULT_IP = "10.0.0.1";
 const char *DEFAULT_PORT = "12345";
-//const int DEFAULT_PORT = 12345;
+
 char message[1024];
 
 struct context {
-//	//@delee
-//	char *buffer;
-  struct ibv_context *ctx;
-  struct ibv_pd *pd;
-  struct ibv_cq *cq;
-  struct ibv_comp_channel *comp_channel;
+	struct ibv_context *ctx;
+	struct ibv_pd *pd;
+	struct ibv_cq *cq;
+	struct ibv_comp_channel *comp_channel;
 
-  pthread_t cq_poller_thread;
+	pthread_t cq_poller_thread;
 };
 
 struct connection {
-  struct rdma_cm_id *id;
-  struct ibv_qp *qp;
+	struct rdma_cm_id *id;
+	struct ibv_qp *qp;
 
-  struct ibv_mr *recv_mr;
-  struct ibv_mr *send_mr;
+	struct ibv_mr *recv_mr;
+	struct ibv_mr *send_mr;
 
-  char *recv_region;
-  char *send_region;
+	char *recv_region;
+	char *send_region;
 
-  int num_completions;
+	int num_completions;
 };
 
 static void die(const char *reason);
@@ -53,7 +57,7 @@ static void register_memory(struct connection *conn);
 static int on_addr_resolved(struct rdma_cm_id *id);
 static void on_completion(struct ibv_wc *wc);
 static int on_connection(void *context);
-static int on_disconnect(struct rdma_cm_id *id);
+//static int on_disconnect(struct rdma_cm_id *id);
 static int on_event(struct rdma_cm_event *event);
 static int on_route_resolved(struct rdma_cm_id *id);
 
@@ -94,7 +98,8 @@ int main(int argc, char **argv)
 		perror("Failed to open file");
 		return 1;
 	}
-	size_t bytesRead = fread(message, sizeof(char), BUFFER_SIZE - 1, file);
+//	size_t bytesRead;
+	fread(message, sizeof(char), BUFFER_SIZE - 1, file);
 //	message[bytesRead] = '\0';
 	fclose(file);
 //	strcpy(event->id->context->send_region, message);
@@ -146,94 +151,94 @@ void build_context(struct ibv_context *verbs)
 
 void build_qp_attr(struct ibv_qp_init_attr *qp_attr)
 {
-  memset(qp_attr, 0, sizeof(*qp_attr));
+	memset(qp_attr, 0, sizeof(*qp_attr));
 
-  qp_attr->send_cq = s_ctx->cq;
-  qp_attr->recv_cq = s_ctx->cq;
-  qp_attr->qp_type = IBV_QPT_RC;
+	qp_attr->send_cq = s_ctx->cq;
+	qp_attr->recv_cq = s_ctx->cq;
+	qp_attr->qp_type = IBV_QPT_RC;
 
-  qp_attr->cap.max_send_wr = 10;
-  qp_attr->cap.max_recv_wr = 10;
-  qp_attr->cap.max_send_sge = 1;
-  qp_attr->cap.max_recv_sge = 1;
+	qp_attr->cap.max_send_wr = 10;
+	qp_attr->cap.max_recv_wr = 10;
+	qp_attr->cap.max_send_sge = 1;
+	qp_attr->cap.max_recv_sge = 1;
 }
 
 void * poll_cq(void *ctx)
 {
-  struct ibv_cq *cq;
-  struct ibv_wc wc;
+	struct ibv_cq *cq;
+	struct ibv_wc wc;
 
-  while (1) {
-    TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ctx));
-    ibv_ack_cq_events(cq, 1);
-    TEST_NZ(ibv_req_notify_cq(cq, 0));
+	while (1) {
+		TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ctx));
+		ibv_ack_cq_events(cq, 1);
+		TEST_NZ(ibv_req_notify_cq(cq, 0));
 
-    while (ibv_poll_cq(cq, 1, &wc))
-      on_completion(&wc);
-  }
+		while (ibv_poll_cq(cq, 1, &wc))
+		on_completion(&wc);
+	}
 
-  return NULL;
+	return NULL;
 }
 
 void post_receives(struct connection *conn)
 {
-  struct ibv_recv_wr wr, *bad_wr = NULL;
-  struct ibv_sge sge;
+	struct ibv_recv_wr wr, *bad_wr = NULL;
+	struct ibv_sge sge;
 
-  wr.wr_id = (uintptr_t)conn;
-  wr.next = NULL;
-  wr.sg_list = &sge;
-  wr.num_sge = 1;
+	wr.wr_id = (uintptr_t)conn;
+	wr.next = NULL;
+	wr.sg_list = &sge;
+	wr.num_sge = 1;
 
-  sge.addr = (uintptr_t)conn->recv_region;
-  sge.length = BUFFER_SIZE;
-  sge.lkey = conn->recv_mr->lkey;
+	sge.addr = (uintptr_t)conn->recv_region;
+	sge.length = BUFFER_SIZE;
+	sge.lkey = conn->recv_mr->lkey;
 
-  TEST_NZ(ibv_post_recv(conn->qp, &wr, &bad_wr));
+	TEST_NZ(ibv_post_recv(conn->qp, &wr, &bad_wr));
 }
 
 void register_memory(struct connection *conn)
 {
-  conn->send_region = malloc(BUFFER_SIZE);
-  conn->recv_region = malloc(BUFFER_SIZE);
+	conn->send_region = (char*)malloc(BUFFER_SIZE);
+	conn->recv_region = (char*)malloc(BUFFER_SIZE);
 
-  TEST_Z(conn->send_mr = ibv_reg_mr(
-    s_ctx->pd, 
-    conn->send_region, 
-    BUFFER_SIZE, 
-    0));
+	TEST_Z(conn->send_mr = ibv_reg_mr(
+		s_ctx->pd, 
+		conn->send_region, 
+		BUFFER_SIZE, 
+		0));
 
-  TEST_Z(conn->recv_mr = ibv_reg_mr(
-    s_ctx->pd, 
-    conn->recv_region, 
-    BUFFER_SIZE, 
-    IBV_ACCESS_LOCAL_WRITE));
+	TEST_Z(conn->recv_mr = ibv_reg_mr(
+		s_ctx->pd, 
+		conn->recv_region, 
+		BUFFER_SIZE, 
+		IBV_ACCESS_LOCAL_WRITE));
 }
 
 int on_addr_resolved(struct rdma_cm_id *id)
 {
-  struct ibv_qp_init_attr qp_attr;
-  struct connection *conn;
+	struct ibv_qp_init_attr qp_attr;
+	struct connection *conn;
 
-  printf("address resolved.\n");
+	printf("address resolved.\n");
 
-  build_context(id->verbs);
-  build_qp_attr(&qp_attr);
+	build_context(id->verbs);
+	build_qp_attr(&qp_attr);
 
-  TEST_NZ(rdma_create_qp(id, s_ctx->pd, &qp_attr));
+	TEST_NZ(rdma_create_qp(id, s_ctx->pd, &qp_attr));
 
-  id->context = conn = (struct connection *)malloc(sizeof(struct connection));
+	id->context = conn = (struct connection *)malloc(sizeof(struct connection));
 
-  conn->id = id;
-  conn->qp = id->qp;
-  conn->num_completions = 0;
+	conn->id = id;
+	conn->qp = id->qp;
+	conn->num_completions = 0;
 
-  register_memory(conn);
-  post_receives(conn);
+	register_memory(conn);
+	post_receives(conn);
 
-  TEST_NZ(rdma_resolve_route(id, TIMEOUT_IN_MS));
+	TEST_NZ(rdma_resolve_route(id, TIMEOUT_IN_MS));
 
-  return 0;
+	return 0;
 }
 
 void on_completion(struct ibv_wc *wc)
@@ -322,27 +327,27 @@ int on_connection(void *context)
 	return 0;
 }
 
-int on_disconnect(struct rdma_cm_id *id)
-{
-	struct connection *conn = (struct connection *)id->context;
-
-	printf("disconnected.\n");
-
-	rdma_destroy_qp(id);
-
-	ibv_dereg_mr(conn->send_mr);
-	ibv_dereg_mr(conn->recv_mr);
-
-	free(conn->send_region);
-	free(conn->recv_region);
-
-	free(conn);
-
-	rdma_destroy_id(id);
-
-//	return 1; /* exit event loop */
-	return 0;
-}
+//int on_disconnect(struct rdma_cm_id *id)
+//{
+//	struct connection *conn = (struct connection *)id->context;
+//
+//	printf("disconnected.\n");
+//
+//	rdma_destroy_qp(id);
+//
+//	ibv_dereg_mr(conn->send_mr);
+//	ibv_dereg_mr(conn->recv_mr);
+//
+//	free(conn->send_region);
+//	free(conn->recv_region);
+//
+//	free(conn);
+//
+//	rdma_destroy_id(id);
+//
+////	return 1; /* exit event loop */
+//	return 0;
+//}
 
 int on_event(struct rdma_cm_event *event)
 {
@@ -372,14 +377,14 @@ int on_event(struct rdma_cm_event *event)
 
 int on_route_resolved(struct rdma_cm_id *id)
 {
-  struct rdma_conn_param cm_params;
+	struct rdma_conn_param cm_params;
 
-  printf("route resolved.\n");
+	printf("route resolved.\n");
 
-  memset(&cm_params, 0, sizeof(cm_params));
-  TEST_NZ(rdma_connect(id, &cm_params));
+	memset(&cm_params, 0, sizeof(cm_params));
+	TEST_NZ(rdma_connect(id, &cm_params));
 
-  return 0;
+	return 0;
 }
 
 //@delee
