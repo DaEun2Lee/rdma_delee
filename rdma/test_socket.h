@@ -183,6 +183,7 @@ void *client_thread(void *arg) {
 			if(rdma_sock_buffer.lock == false){
 				rdma_sock_buffer.lock = true;
 				memcpy(message, rdma_sock_buffer.data, SO_BUFFER_SIZE);
+				printf("%s: SOCK-Client send message:\n%s\n", __func__, rdma_sock_buffer.data)
 				memset(rdma_sock_buffer.data, 0, SO_BUFFER_SIZE);
 				rdma_sock_buffer.length = 0;
 				rdma_sock_buffer.lock = false;
