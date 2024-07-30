@@ -13,7 +13,7 @@
 //#define BUFFER_SIZE 1024
 
 //@delee
-#define SO_IP "10.20.17.168" //Dest IP
+#define SO_IP "10.0.0.1" //Dest IP
 //sock-> wanproxy
 #define SND_PORT 3300
 //sock -> rdma
