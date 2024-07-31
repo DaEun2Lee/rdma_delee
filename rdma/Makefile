@@ -10,12 +10,12 @@ CXX := g++
 #APPS := test_socket
 APPS := server client
 
-all: ${APPS}
+#all: ${APPS}
 
 client: client.c
 	${CC} ${CXXFLAGS} -o $@ $^ ${LDLIBS}
 
-server: server.c socket.c
+server: server_main.c rdma_server.c socket.c
 	${CC} ${CFLAGS} -o $@ $^ ${LDLIBS}
 
 clean:

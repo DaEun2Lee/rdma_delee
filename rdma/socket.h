@@ -1,3 +1,6 @@
+#ifndef SOCKET_H_
+#define SOCKET_H_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +10,7 @@
 #include <stdbool.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <netdb.h>
 
 #define SO_IP "10.0.0.1"                //Dest IP
 #define SO_SND_PORT 3300                //sock-> wanproxy
@@ -38,3 +42,5 @@ void socket_send_message(struct socket_thread *c_info, char *message);
 void *server_thread();
 void *client_thread();
 void *socket_thread();
+
+#endif // SOCKET_H_
