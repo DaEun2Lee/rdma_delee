@@ -8,8 +8,8 @@
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
 
 
-const int BUFFER_SIZE = 1024;
-const int DEFAULT_PORT = 12345;
+//const int BUFFER_SIZE = 1024;
+//const int DEFAULT_PORT = 12345;
 struct context {
 	struct ibv_context *ctx;
 	struct ibv_pd *pd;
@@ -46,9 +46,9 @@ struct server_snic{
 	struct socket_thread *c_info;
 };
 
-struct context *s_ctx = NULL;
+//struct context *s_ctx = NULL;
 
-struct server_snic *snic;
+//struct server_snic *snic;
 
 void die(const char *reason);
 

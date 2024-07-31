@@ -10,7 +10,7 @@ CXX := g++
 #APPS := test_socket
 APPS := server client
 
-#all: ${APPS}
+all: ${APPS}
 
 client: client.c
 	${CC} ${CXXFLAGS} -o $@ $^ ${LDLIBS}

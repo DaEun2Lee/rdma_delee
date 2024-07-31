@@ -1,5 +1,12 @@
 #include "rdma_server.h"
 
+const int BUFFER_SIZE = 1024;
+const int DEFAULT_PORT = 12345;
+
+struct context *s_ctx = NULL;
+
+struct server_snic *snic;
+
 void die(const char *reason)
 {
 	fprintf(stderr, "%s\n", reason);
