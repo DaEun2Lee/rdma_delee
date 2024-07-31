@@ -127,16 +127,19 @@ int main(int argc, char **argv)
 //        size_t bytesRead = fread(message, sizeof(char), SO_BUFFER_SIZE - 1, file);
 //        message[bytesRead] = '\0';
 //        fclose(file);
-
+	bool flag = true;
 	while(true){
 		//Socket
 		sleep(2);
+		if(flag){
 //		if(s_ctx->send_region != NULL){
 //                        socket_send_message(c_info, s_ctx->send_region);
                         if(socket_connect_request(s_info))
                                 break;
                         printf("%s: Create Sock-Server\n", __func__);
+			flag = false;
 //                }
+		}
 
 		//Receive data from Client      (Server-side)
                 int valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);

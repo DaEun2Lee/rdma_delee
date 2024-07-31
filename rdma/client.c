@@ -103,6 +103,7 @@ int main(int argc, char **argv)
 //	message[bytesRead] = '\0';
 	fclose(file);
 //	strcpy(event->id->context->send_region, message);
+//	memcpy(conn->send_resgion, message, BUFFER_SIZE);
 
 	while (rdma_get_cm_event(ec, &event) == 0) {
 		struct rdma_cm_event event_copy;
@@ -361,7 +362,7 @@ int on_event(struct rdma_cm_event *event)
 
 	} else if (event->event == RDMA_CM_EVENT_ESTABLISHED) {
 		r = on_connection(event->id->context);
-		//@delee
+		//@de lee
 		//TODO
 		//Need to insert send func
 //		r = send_while(event->id->context);
