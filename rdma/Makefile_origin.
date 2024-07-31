@@ -1,20 +1,12 @@
 .PHONY: clean
 
-CFLAGS := -Wall -g -ggdb -Werror -DACN_RDMA_DEBUG -std=c11
-CXXFLAGS := -Wall -g -ggdb -Werror -DACN_RDMA_DEBUG
-LDLIBS := -lrdmacm -libverbs -lpthread
-CC := gcc
-CXX := g++
+CFLAGS  := -Wall -g
+LDLIBS  := ${LDLIBS} -lrdmacm -libverbs -lpthread
 
-APPS := server client
+APPS    := server client
 
 all: ${APPS}
 
-server: server.c
-	${CC} ${CFLAGS} -o $@ $^ ${LDLIBS}
-
-client: client.c
-	${CC} ${CFLAGS} -o $@ $^ ${LDLIBS}
 
 clean:
 	rm -f ${APPS}
