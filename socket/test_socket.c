@@ -1,90 +1,109 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <stdatomic.h>
-#include <stdbool.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-
-#define SO_IP "10.0.0.1" 		//Dest IP
-#define SO_SND_PORT 3300		//sock-> wanproxy
-#define SO_RCV_PORT 8080		//sock -> rdma
-#define SO_BUFFER_SIZE 1024
-
-char sock_rdma_buffer[SO_BUFFER_SIZE] = {0};
-char rdma_sock_buffer[SO_BUFFER_SIZE] = {0};
+#include "test_socket.h"
 
 // Atomic flag to indicate if the buffer has changed
 atomic_bool sock_rdma_buffer_changed = false;
 atomic_bool rdma_sock_buffer_changed = false;
 
-void *server_thread(void *arg) {
-	//Socket
-	int server_fd, new_socket;
-	struct sockaddr_in address;
-	int opt = 1;
-	int addrlen = sizeof(address);
-	char buffer[SO_BUFFER_SIZE] = {0};
+//bool server_thread_init(struct socket_thread *s_info)
+struct socket_thread * server_thread_init()
+{
+	struct socket_thread *s_info;
+	s_info = malloc(sizeof(struct socket_thread));
+
+	//Init Socket
+	s_info->opt = 1;
+	s_info->addrlen = sizeof(s_info->address);
+//	s_info->buffer = {0};
+	memset(s_info->buffer, 0 , SO_BUFFER_SIZE);
 
 	// 소켓 파일 디스크립터 생성
-	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+	if ((s_info->server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
 		perror("socket failed");
 		exit(EXIT_FAILURE);
-	}
+        }
 
-	// 소켓 옵션 설정
-//#ifdef SO_REUSEPORT
-//	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
-//#else
-	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
-//#endif
+	// Setting Socket option
+//	s_info->server_fd = -12345;
+	if (setsockopt(s_info->server_fd, SOL_SOCKET, SO_REUSEADDR, &(s_info->opt), sizeof(s_info->opt))) {
 		perror("setsockopt");
-		close(server_fd);
-		pthread_exit(NULL);
+		close(s_info->server_fd);
+//		pthread_exit(NULL);
+		return NULL;
 	}
 
-	// 주소와 포트 설정
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = htons(SO_RCV_PORT);
+	//Setting IP and Port
+	s_info->address.sin_family = AF_INET;
+	s_info->address.sin_addr.s_addr = INADDR_ANY;
+	s_info->address.sin_port = htons(SO_RCV_PORT);
 
-	// 소켓에 주소와 포트 바인딩
-	if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+	//Bind IP and Port to Socket
+	if (bind(s_info->server_fd, (struct sockaddr *)&s_info->address, sizeof(s_info->address)) < 0) {
 		perror("bind failed");
-		close(server_fd);
-		pthread_exit(NULL);
+		close(s_info->server_fd);
+//		pthread_exit(NULL);
+		return NULL;
 	}
 
-	// 연결 대기
-	if (listen(server_fd, 3) < 0) {
+	return s_info;
+}
+
+bool socket_listen(struct socket_thread *s_info)
+{
+	if (listen(s_info->server_fd, 3) < 0) {
 		perror("listen");
-		close(server_fd);
-		pthread_exit(NULL);
+		close(s_info->server_fd);
+		return false;
 	}
 
 	printf("%s: Server listening on port %d\n", __func__, SO_RCV_PORT);
-
+	return true;
+}
+bool socket_connect_request(struct socket_thread *s_info)
+{
 	// 클라이언트의 연결 수락
-	if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
-		perror("accept");
-		close(server_fd);
+	if ((s_info->new_socket = accept(s_info->server_fd, (struct sockaddr *)&(s_info->address), (socklen_t*)&(s_info->addrlen))) < 0) {
+                perror("accept");
+		close(s_info->server_fd);
+		return false;
+        }
+	printf("%s: Socket-Server connected Socket-Client\n", __func__);
+	return true;
+}
+
+void socket_end(struct socket_thread *s_info)
+{
+	// 소켓 종료
+	close(s_info->new_socket);
+	close(s_info->server_fd);
+}
+
+void *server_thread(void *arg)
+{
+	struct socket_thread *s_info = server_thread_init();
+
+//	if(!server_thread_init(s_info))
+//		pthread_exit(NULL);
+
+	if(s_info == NULL)
 		pthread_exit(NULL);
-	}
+
+	if(!socket_listen(s_info))
+		pthread_exit(NULL);
+
+	if(socket_connect_request(s_info))
+		pthread_exit(NULL);
 
 	while(1){
 		// 클라이언트로부터 데이터 수신
-		int valread = read(new_socket, buffer, SO_BUFFER_SIZE);
+		int valread = read(s_info->new_socket, s_info->buffer, SO_BUFFER_SIZE);
 		if (valread < 0) {
 			perror("read");
-			close(new_socket);
-			close(server_fd);
+			socket_end(s_info);
 			pthread_exit(NULL);
 		}
 
 		// 수신한 데이터 출력
-		printf("%s: Server received data: %s\n", __func__, buffer);
+		printf("%s: Server received data: %s\n", __func__, s_info->buffer);
 		//@delee
 		//TODO
 		//RDMA
@@ -95,8 +114,8 @@ void *server_thread(void *arg) {
 	}
 
 	// 소켓 종료
-	close(new_socket);
-	close(server_fd);
+	socket_end(s_info);
+
 	pthread_exit(NULL);
 }
 
@@ -163,26 +182,4 @@ void *client_thread(void *arg) {
 	// 소켓 닫기
 	close(sock);
 	pthread_exit(NULL);
-}
-
-int main() {
-	pthread_t server_tid, client_tid;
-
-	// 서버 스레드 생성
-	if (pthread_create(&server_tid, NULL, server_thread, NULL) != 0) {
-	        perror("Failed to create server thread");
-	exit(EXIT_FAILURE);
-	}
-
-	// 클라이언트 스레드 생성
-	if (pthread_create(&client_tid, NULL, client_thread, NULL) != 0) {
-		perror("Failed to create client thread");
-	exit(EXIT_FAILURE);
-	}
-
-	// 스레드가 종료될 때까지 대기
-	pthread_join(server_tid, NULL);
-	pthread_join(client_tid, NULL);
-
-	return 0;
 }

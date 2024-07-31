@@ -7,7 +7,8 @@ CC := gcc
 CXX := g++
 
 #APPS := test_server test_client test_socket
-APPS := test_socket
+#APPS := test_socket
+APPS := main
 
 all: ${APPS}
 
@@ -17,7 +18,10 @@ all: ${APPS}
 #test_client: test_client.c
 #	${CC} ${CFLAGS} -o $@ $^ ${LDLIBS}
 
-test_socket: test_socket.c
+#test_socket: test_socket.c
+#	${CC} ${CFLAGS} -o $@ $^ ${LDLIBS}
+
+main: main.c test_socket.c
 	${CC} ${CFLAGS} -o $@ $^ ${LDLIBS}
 
 clean:
