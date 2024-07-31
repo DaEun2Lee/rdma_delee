@@ -18,7 +18,7 @@
 
 struct socket_thread {
 	int server_fd;
-	int new_socket;
+	int socket; 			//new_socket;
 	struct sockaddr_in address;
 	int opt;			//1
 	int addrlen;			//addrlen = sizeof(address);
@@ -30,6 +30,10 @@ struct socket_thread * server_thread_init();
 bool socket_listen(struct socket_thread *s_info);
 bool socket_connect_request(struct socket_thread *s_info);
 void socket_end(struct socket_thread *s_info);
+
+struct socket_thread * client_thread_init();
+bool socket_connect(struct socket_thread *c_info);
+void socket_send_message(struct socket_thread *c_info, char *message);
 
 void *server_thread();
 void *client_thread();
