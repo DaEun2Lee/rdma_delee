@@ -256,7 +256,7 @@ void on_completion(struct ibv_wc *wc)
 ////		//This code inform that server have received data from rdma using atomic.
 		memcpy(rdma_sock_buffer, conn->recv_region, BUFFER_SIZE);
 		atomic_store(&rdma_sock_buffer_changed, true);
-		start = record_time_file(fptr, "Start of sending data using RDMA"); 
+//		start = record_time_file(fptr, "Start of sending data using RDMA"); 
 
 //		while(1){
 //			if(rdma_sock_buffer.lock == false){
@@ -400,7 +400,8 @@ int on_event(struct rdma_cm_event *event)
 	else if (event->event == RDMA_CM_EVENT_ESTABLISHED)
 		r = on_connection(event->id->context);
 	else if (event->event == RDMA_CM_EVENT_DISCONNECTED)
-		r = on_disconnect(event->id);
+//		r = on_disconnect(event->id);
+		r= 0;
 	else
 		die("on_event: unknown event.");
 
