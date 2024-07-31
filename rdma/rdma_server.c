@@ -5,7 +5,11 @@ const int DEFAULT_PORT = 12345;
 
 struct context *s_ctx = NULL;
 
-struct server_snic *snic;
+//struct server_snic *snic;
+
+struct rdma_thread *r_info;
+struct socket_thread *s_info;
+struct socket_thread *c_info;
 
 void die(const char *reason)
 {
@@ -154,7 +158,8 @@ int on_connection(void *context)
 
 	//@delee
 	//TODO
-	memcpy(conn->send_region, snic->s_info->buffer, BUFFER_SIZE);
+//	memcpy(conn->send_region, snic->s_info->buffer, BUFFER_SIZE);
+	memcpy(conn->send_region, s_info->buffer, BUFFER_SIZE);
 	printf("%s: connected. posting send...\n", __func__);
 
 	memset(&wr, 0, sizeof(wr));
@@ -190,57 +195,73 @@ int on_event(struct rdma_cm_event *event)
 	return r;
 }
 
-struct rdma_thread * rdma_init()
+//struct rdma_thread * rdma_init()
+void rdma_init()
 {
-	struct rdma_thread *r_info;
-	r_info = malloc(sizeof(struct rdma_thread));
+//	struct rdma_thread *r_info;
+//	snic->r_info = malloc(sizeof(struct rdma_thread));
 
 //Set Address for RDMA
+//	snic->r_info->event = NULL;
+//        snic->r_info->listener = NULL;
+//        snic->r_info->ec = NULL
 	r_info->event = NULL;
 	r_info->listener = NULL;
 	r_info->ec = NULL;
 
-        memset(&(snic->r_info->addr), 0, sizeof(snic->r_info->addr));
+//        memset(&(snic->r_info->addr), 0, sizeof(snic->r_info->addr));
+	memset(&(r_info->addr), 0, sizeof(r_info->addr));
 
-#if _USE_IPV6
-        r_info->addr.sin6_family = AF_INET6;
-        r_info->addr.sin6_port = htons(DEFAULT_PORT);
-#else
-        r_info->addr.sin_family = AF_INET;
-        r_info->addr.sin_port = htons(DEFAULT_PORT);
-#endif
+//#if _USE_IPV6
+//        r_info->addr.sin6_family = AF_INET6;
+//        r_info->addr.sin6_port = htons(DEFAULT_PORT);
+//#else
+//        snic->r_info->addr.sin_family = AF_INET;
+//	snic->r_info->addr.sin_port = htons(DEFAULT_PORT);
+	r_info->addr.sin_family = AF_INET;
+	r_info->addr.sin_port = htons(DEFAULT_PORT);
+//#endif
+
+//	TEST_Z(snic->r_info->ec = rdma_create_event_channel());
+//	TEST_NZ(rdma_create_id(snic->r_info->ec, &snic->r_info->listener, NULL, RDMA_PS_TCP));
+//	TEST_NZ(rdma_bind_addr(snic->r_info->listener, (struct sockaddr *)&snic->r_info->addr));
+//	TEST_NZ(rdma_listen(snic->r_info->listener, 10)); /* backlog=10 is arbitrary */
 
 	TEST_Z(r_info->ec = rdma_create_event_channel());
-	TEST_NZ(rdma_create_id(r_info->ec, &r_info->listener, NULL, RDMA_PS_TCP));
+        TEST_NZ(rdma_create_id(r_info->ec, &r_info->listener, NULL, RDMA_PS_TCP));
 	TEST_NZ(rdma_bind_addr(r_info->listener, (struct sockaddr *)&r_info->addr));
 	TEST_NZ(rdma_listen(r_info->listener, 10)); /* backlog=10 is arbitrary */
 
 //	freeaddrinfo(r_info->addr);
 	printf("%s: RDMA listening on port %d.\n", __func__, DEFAULT_PORT);
 
-
-
-	return r_info;
+//	return snic->r_info;
 }
-struct server_snic * rdma_sock_thread_init()
+
+//struct server_snic * rdma_sock_thread_init()
+void rdma_sock_thread_init()
 {
 //	struct server_snic *snic;
-	snic = malloc(sizeof(struct rdma_thread));
+//	snic = malloc(sizeof(struct rdma_thread));
 
-	snic->r_info = rdma_init();
-	snic->s_info = server_thread_init();
-	snic->c_info = client_thread_init();
+//	snic->r_info = 
+//	rdma_init();
+//	snic->s_info = 
+	server_thread_init();
+//	snic->c_info = 
+	client_thread_init();
 
-	return snic;
+//	return snic;
 }
 
 
 void *rdma_sock_thread(void *arg)
 {
 	//arg is struct server_snic * sni
-	struct server_snic * snic = (struct server_snic *)arg;
-	struct rdma_thread * r_info = snic->r_info;
-	struct socket_thread * c_info = snic->c_info;
+//	struct server_snic * snic = (struct server_snic *)arg;
+//	struct rdma_thread * r_info = snic->r_info;
+//	struct socket_thread * c_info = snic->c_info;
+//	struct socket_thread * c_info = c_info;
 
         sleep(3);       //Waiting for servers to be ready
 
@@ -274,9 +295,9 @@ void *rdma_sock_thread(void *arg)
 void *sock_rdma_thread(void *arg)
 {
 	//arg is struct server_snic * sni
-	struct server_snic * snic = (struct server_snic *)arg;
-	struct rdma_thread * r_info = snic->r_info;
-	struct socket_thread * s_info = snic->s_info;
+//	struct server_snic * snic = (struct server_snic *)arg;
+//	struct rdma_thread * r_info = snic->r_info;
+//	struct socket_thread * s_info = snic->s_info;
 
 	while(true){
 		//Receive data from Client

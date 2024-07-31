@@ -64,8 +64,10 @@ int on_connection(void *context);
 //static int on_disconnect(struct rdma_cm_id *id);
 int on_event(struct rdma_cm_event *event);
 
-struct rdma_thread * rdma_init();
-struct server_snic * rdma_sock_thread_init();
+//struct rdma_thread * rdma_init();
+void rdma_init();
+//struct server_snic * rdma_sock_thread_init();
+void rdma_sock_thread_init();
 
 void *rdma_sock_thread(void *arg);
 void *sock_rdma_thread(void *arg);
