@@ -37,4 +37,3 @@ void socket_send_message(struct socket_thread *c_info, char *message);
 
 void *server_thread();
 void *client_thread();
-void *socket_thread();

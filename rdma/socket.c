@@ -1,4 +1,4 @@
-#include "test_socket.h"
+#include "socket.h"
 
 //bool server_thread_init(struct socket_thread *s_info)
 struct socket_thread * server_thread_init()
@@ -82,7 +82,7 @@ void *server_thread(void *arg)
 	if(socket_connect_request(s_info))
 		pthread_exit(NULL);
 
-	while(true){
+	while(1){
 		//Receive data from Client 
 		int valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);
 		if (valread < 0) {
@@ -169,8 +169,7 @@ void *client_thread(void *arg) {
 	if(c_info == NULL)
 		pthread_exit(NULL);
 
-	if(!socket_connect(c_info))
-		pthread_exit(NULL);
+	socket_connect(c_info);
 
 	//Input message
 	char *message = (char*)malloc(SO_BUFFER_SIZE);
@@ -185,74 +184,6 @@ void *client_thread(void *arg) {
 
 	socket_send_message(c_info, message);
 
-	socket_end(c_info);
-
-	pthread_exit(NULL);
-}
-
-void *socket_thread(void *arg)
-{
-	//Create Sock-Server
-	struct socket_thread *s_info = server_thread_init();
-
-	if(s_info == NULL)
-		pthread_exit(NULL);
-
-	if(!socket_listen(s_info))
-		pthread_exit(NULL);
-
-//	if(socket_connect_request(s_info))
-//		pthread_exit(NULL);
-//	printf("%s: Create Sock-Server\n", __func__);
-
-	//Create Sock-Client
-	struct socket_thread *c_info = client_thread_init();
-
-	if(c_info == NULL)
-		pthread_exit(NULL);
-	if(!socket_connect(c_info))
-		pthread_exit(NULL);
-	printf("%s: Create Sock-Client\n", __func__);
-
-
-//	if(socket_connect_request(s_info))
-//                pthread_exit(NULL);
-//        printf("%s: Create Sock-Server\n", __func__);
-
-
-	//Input message 			(Client-side)
-        char *message = (char*)malloc(SO_BUFFER_SIZE);
-        FILE *file;
-        file = fopen("request.txt", "r");
-        if (file == NULL) {
-                perror("Failed to open file");
-        }
-        size_t bytesRead = fread(message, sizeof(char), SO_BUFFER_SIZE - 1, file);
-        message[bytesRead] = '\0';
-        fclose(file);
-
-	bool flag = true;
-	while(true){
-		if(flag){
-			socket_send_message(c_info, message);
-			flag = false;
-			if(socket_connect_request(s_info))
-				break;
-			printf("%s: Create Sock-Server\n", __func__);
-                }
-		//Receive data from Client 	(Server-side)
-		int valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);
-		if (valread < 0) {
-			perror("read");
-			socket_end(s_info);
-			pthread_exit(NULL);
-                }
-
-		//Print received data		(Server-side)
-		printf("%s: Server received data: %s\n", __func__, s_info->buffer);
-	}
-
-	socket_end(s_info);
 	socket_end(c_info);
 
 	pthread_exit(NULL);

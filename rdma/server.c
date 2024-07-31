@@ -5,8 +5,7 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <rdma/rdma_cma.h>
-#include "simple_socket_send.h"
-#include "test_socket.h"
+#include "socket.h"		//made by delee
 
 #define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
