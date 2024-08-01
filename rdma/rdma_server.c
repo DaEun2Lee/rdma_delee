@@ -390,11 +390,17 @@ void *sock_rdma_thread(void *arg)
 		if (valread < 0) {
 			perror("read");
 			socket_end(s_info);
-			pthread_exit(NULL);
+			printf("%s: Client received response: %s\n", __func__,c_info->buffer);
+//			pthread_exit(NULL);
 		}
-
 		//Print received data
 		printf("%s: Server received data: %s\n", __func__, s_info->buffer);
+
+		valread = read(c_info->socket, c_info->buffer, SO_BUFFER_SIZE);
+		if (valread > 0) {
+			printf("%s: Client received response: %s\n", __func__,c_info->buffer);
+		}
+
 		//TODO
 		//sock->rdma
 		if (rdma_get_cm_event(r_info->ec, &r_info->event) == 0) {
@@ -404,7 +410,7 @@ void *sock_rdma_thread(void *arg)
 			rdma_ack_cm_event(r_info->event);
 			struct rdma_cm_event *t_event = &event_copy;
 
-//		memcpy(r_info->event->id->context->send_region, s_info->buffer, BUFFER_SIZE);
+//			memcpy(r_info->event->id->context->send_region, s_info->buffer, BUFFER_SIZE);
 			//TODO
 			// ?event_copy
                		on_connection(t_event->id->context);
