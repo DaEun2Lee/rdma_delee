@@ -38,6 +38,8 @@ struct rdma_thread{
         struct rdma_cm_event *event;		// = NULL;
         struct rdma_cm_id *listener;		// = NULL;
         struct rdma_event_channel *ec;		// = NULL;
+
+	int status;
 };
 
 struct server_snic{

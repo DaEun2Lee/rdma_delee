@@ -178,7 +178,8 @@ int on_connection(void *context)
 
 	TEST_NZ(ibv_post_send(conn->qp, &wr, &bad_wr));
 
-	return 0;
+//	return 0;
+	return 1;
 }
 
 int on_event(struct rdma_cm_event *event)
@@ -230,11 +231,6 @@ struct rdma_thread * rdma_init()
 	r_info->addr.sin_port = htons(DEFAULT_PORT);
 //#endif
 
-//	TEST_Z(snic->r_info->ec = rdma_create_event_channel());
-//	TEST_NZ(rdma_create_id(snic->r_info->ec, &snic->r_info->listener, NULL, RDMA_PS_TCP));
-//	TEST_NZ(rdma_bind_addr(snic->r_info->listener, (struct sockaddr *)&snic->r_info->addr));
-//	TEST_NZ(rdma_listen(snic->r_info->listener, 10)); /* backlog=10 is arbitrary */
-
 	TEST_Z(r_info->ec = rdma_create_event_channel());
         TEST_NZ(rdma_create_id(r_info->ec, &r_info->listener, NULL, RDMA_PS_TCP));
 	TEST_NZ(rdma_bind_addr(r_info->listener, (struct sockaddr *)&(r_info->addr)));
@@ -243,25 +239,16 @@ struct rdma_thread * rdma_init()
 //	freeaddrinfo(r_info->addr);
 	printf("%s: RDMA listening on port %d.\n", __func__, DEFAULT_PORT);
 
-//	return snic->r_info;
 	return r_info;
 }
 
-//struct server_snic * rdma_sock_thread_init()
 bool rdma_sock_thread_init()
 {
-//	struct server_snic *snic;
-//	snic = malloc(sizeof(struct rdma_thread));
-
-//	snic->r_info = 
-//	rdma_init();
 	s_info = server_thread_init();
         if(s_info == NULL)
-//              pthread_exit(NULL);
                 return false;
 
         if(!socket_listen(s_info))
-//      pthread_exit(NULL);
                 return false;
 
         printf("%s: Create Sock-Server\n", __func__);
@@ -269,44 +256,22 @@ bool rdma_sock_thread_init()
 
 	c_info = client_thread_init();
 	if(c_info == NULL)
-//              pthread_exit(NULL);
                 return false;
 
         if(!socket_connect(c_info))
-//              pthread_exit(NULL);
                 return false;
 
         printf("%s: Create Sock-Client\n", __func__);
 
 	r_info = rdma_init();
 
-//	return snic;
 	return true;
 }
 
 
 void *rdma_sock_thread(void *arg)
 {
-	//arg is struct server_snic * sni
-//	struct server_snic * snic = (struct server_snic *)arg;
-//	struct rdma_thread * r_info = snic->r_info;
-//	struct socket_thread * c_info = snic->c_info;
-//	struct socket_thread * c_info = c_info;
-
-//        sleep(3);       //Waiting for servers to be ready
-
-//        //Input message
-//        char *message = (char*)malloc(SO_BUFFER_SIZE);
-//        FILE *file;
-//        file = fopen("request.txt", "r");
-//        if (file == NULL) {
-//                perror("Failed to open file");
-//        }
-//        size_t bytesRead = fread(message, sizeof(char), SO_BUFFER_SIZE - 1, file);
-//        message[bytesRead] = '\0';
-//        fclose(file);
-
-//	//TODO
+	//TODO
 //	while(true){
 //		if (rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
 //			struct rdma_cm_event event_copy;
@@ -324,34 +289,21 @@ void *rdma_sock_thread(void *arg)
                 rdma_ack_cm_event(r_info->event);
 
 		int r = 0;
-//
-////		if (on_event(&event_copy)){
-//		if (event_copy->event == RDMA_CM_EVENT_CONNECT_REQUEST){
-//			printf("%s: event = RDMA_CM_EVENT_CONNECT_REQUEST", __func__);
-//			r = on_connect_request(event_copy->id);
-//		} else if (event_copy->event == RDMA_CM_EVENT_ESTABLISHED){
-//			printf("%s: event = RDMA_CM_EVENT_ESTABLISHED", __func__);
-//			r = on_connection(event_copy->id->context);
-//		} else if (event_copy->event == RDMA_CM_EVENT_DISCONNECTED){
-//			printf("%s: event = RDMA_CM_EVENT_DISCONNECTED", __func__);
-////			r = on_disconnect(event->id);
-//		} else {
-//			printf("%s: event = %d", __func__, event_copy->event);
-////			die("on_event: unknown event.");
-//		}
-
 		struct rdma_cm_event *t_event = &event_copy;
 		switch (t_event->event) {
 			case RDMA_CM_EVENT_CONNECT_REQUEST:
 				printf("%s: event = RDMA_CM_EVENT_CONNECT_REQUEST\n", __func__);
+				r_info->status = RDMA_CM_EVENT_CONNECT_REQUEST;
 				r = on_connect_request(t_event->id);
 				break;
 			case RDMA_CM_EVENT_ESTABLISHED:
 				printf("%s: event = RDMA_CM_EVENT_ESTABLISHED\n", __func__);
-				r = on_connection(t_event->id->context);
+				r_info->status = RDMA_CM_EVENT_ESTABLISHED;
+//				r = on_connection(t_event->id->context);
 				break;
 			case RDMA_CM_EVENT_DISCONNECTED:
 				printf("%s: event = RDMA_CM_EVENT_DISCONNECTED\n", __func__);
+				r_info->status = RDMA_CM_EVENT_DISCONNECTED;
 				// r = on_disconnect(t_event->id);
 				break;
 			default:
@@ -384,7 +336,7 @@ void *sock_rdma_thread(void *arg)
 
 //	struct connection *conn = (struct connection *)(r_info->event->id->context);
 
-	while(true){
+	while(r_info->status == RDMA_CM_EVENT_ESTABLISHED){
 		//Receive data from Client
 		int valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);
 		if (valread < 0) {
