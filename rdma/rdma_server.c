@@ -195,12 +195,12 @@ int on_event(struct rdma_cm_event *event)
 	return r;
 }
 
-//struct rdma_thread * rdma_init()
-void rdma_init()
+struct rdma_thread * rdma_init()
+//void rdma_init()
 {
 //	struct rdma_thread *r_info;
 //	snic->r_info = malloc(sizeof(struct rdma_thread));
-
+	r_info = malloc(sizeof(struct rdma_thread));
 //Set Address for RDMA
 //	snic->r_info->event = NULL;
 //        snic->r_info->listener = NULL;
@@ -236,6 +236,7 @@ void rdma_init()
 	printf("%s: RDMA listening on port %d.\n", __func__, DEFAULT_PORT);
 
 //	return snic->r_info;
+	return r_info;
 }
 
 //struct server_snic * rdma_sock_thread_init()
@@ -269,6 +270,8 @@ bool rdma_sock_thread_init()
 
         printf("%s: Create Sock-Client\n", __func__);
 
+	r_info = rdma_init();
+
 //	return snic;
 	return true;
 }
@@ -296,15 +299,15 @@ void *rdma_sock_thread(void *arg)
         fclose(file);
 
 	//TODO
-	while(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
-
-		struct rdma_cm_event event_copy;
-
-		rdma_ack_cm_event(r_info->event);
-		if (on_event(&event_copy))
-			break;
+//	while(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
+//
+//		struct rdma_cm_event event_copy;
+//
+//		rdma_ack_cm_event(r_info->event);
+//		if (on_event(&event_copy))
+//			break;
 		socket_send_message(c_info, message);
-	}
+//	}
 
         socket_end(c_info);
 
