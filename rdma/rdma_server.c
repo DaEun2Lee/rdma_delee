@@ -123,6 +123,7 @@ void on_completion(struct ibv_wc *wc)
 		//send rdma -> socket
 		socket_send_message(c_info, conn->recv_region);
 		sock_rdma_data = c_info->buffer;
+		
 //		memset(conn->recv_region, 0, BUFFER_SIZE);
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("%s: sends completed successfully.\n", __func__);
@@ -338,7 +339,7 @@ void *sock_rdma_thread(void *arg)
 //	struct connection *conn = (struct connection *)(r_info->event->id->context);
 
 	while(true){
-		if(r_info->status == RDMA_CM_EVENT_ESTABLISHED){
+//		if(r_info->status == RDMA_CM_EVENT_ESTABLISHED){
 			//TODO
 			//sock->rdma
 			struct rdma_cm_event event_copy;
@@ -378,8 +379,8 @@ void *sock_rdma_thread(void *arg)
 //				struct rdma_cm_event *t_event = &event_copy;
 
 //			}
-		} else
-			sleep(1);
+//		} else
+//			sleep(1);
         }
 
 	pthread_exit(NULL);
