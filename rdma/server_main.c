@@ -57,5 +57,6 @@ int main(){
 	pthread_join(rdma_sock_tid, NULL);
 	pthread_join(sock_rdma_tid, NULL);
 
+
 	return 0;
 }

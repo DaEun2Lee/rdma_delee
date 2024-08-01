@@ -229,7 +229,7 @@ struct rdma_thread * rdma_init()
 
 	TEST_Z(r_info->ec = rdma_create_event_channel());
         TEST_NZ(rdma_create_id(r_info->ec, &r_info->listener, NULL, RDMA_PS_TCP));
-	TEST_NZ(rdma_bind_addr(r_info->listener, (struct sockaddr *)&r_info->addr));
+	TEST_NZ(rdma_bind_addr(r_info->listener, (struct sockaddr *)&(r_info->addr)));
 	TEST_NZ(rdma_listen(r_info->listener, 10)); /* backlog=10 is arbitrary */
 
 //	freeaddrinfo(r_info->addr);
@@ -310,7 +310,8 @@ void *rdma_sock_thread(void *arg)
 	}
 
         socket_end(c_info);
-
+	rdma_destroy_id(r_info->listener);
+        rdma_destroy_event_channel(r_info->ec);
         pthread_exit(NULL);
 }
 
@@ -320,7 +321,9 @@ void *sock_rdma_thread(void *arg)
 //	struct server_snic * snic = (struct server_snic *)arg;
 //	struct rdma_thread * r_info = snic->r_info;
 //	struct socket_thread * s_info = snic->s_info;
-	struct connection *conn = (struct connection *)(&(r_info->event)->id->context);
+	sleep(3);
+
+	struct connection *conn = (struct connection *)(r_info->event->id->context);
 
 	while(true){
 		//Receive data from Client
@@ -338,7 +341,7 @@ void *sock_rdma_thread(void *arg)
 		memcpy(conn->send_region, s_info->buffer, BUFFER_SIZE);
 		//TODO
 		// ?event_copy
-               	on_connection(conn);
+//               	on_connection(conn);
         }
 
 	pthread_exit(NULL);
