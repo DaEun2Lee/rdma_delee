@@ -3,14 +3,16 @@
 
 int main(){
 
-//	struct server_snic *snic;
-//	snic = 
-	rdma_sock_thread_init();
-	printf("%s: Create snic\n", __func__);
+////	struct server_snic *snic;
+////	snic = 
 
+	if(!rdma_sock_thread_init())
+		return 0;
+//	printf("%s: Create snic\n", __func__);
+//
 //	//This part is socket <-> rdma
 //	//Create Sock-Server
-//	struct socket_thread *s_info = snic->s_info;
+//	struct socket_thread *s_info = s_info;
 //
 //	if(s_info == NULL)
 ////		pthread_exit(NULL);
@@ -24,7 +26,7 @@ int main(){
 //
 //
 //	//Create Sock-Client
-//	struct socket_thread *c_info = snic->c_info;
+//	struct socket_thread *c_info = c_info;
 //
 //	if(c_info == NULL)
 ////		pthread_exit(NULL);

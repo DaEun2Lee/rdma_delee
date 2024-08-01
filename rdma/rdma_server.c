@@ -239,19 +239,38 @@ void rdma_init()
 }
 
 //struct server_snic * rdma_sock_thread_init()
-void rdma_sock_thread_init()
+bool rdma_sock_thread_init()
 {
 //	struct server_snic *snic;
 //	snic = malloc(sizeof(struct rdma_thread));
 
 //	snic->r_info = 
 //	rdma_init();
-//	snic->s_info = 
-	server_thread_init();
-//	snic->c_info = 
-	client_thread_init();
+	s_info = server_thread_init();
+        if(s_info == NULL)
+//              pthread_exit(NULL);
+                return false;
+
+        if(!socket_listen(s_info))
+//      pthread_exit(NULL);
+                return false;
+
+        printf("%s: Create Sock-Server\n", __func__);
+
+
+	c_info = client_thread_init();
+	if(c_info == NULL)
+//              pthread_exit(NULL);
+                return false;
+
+        if(!socket_connect(c_info))
+//              pthread_exit(NULL);
+                return false;
+
+        printf("%s: Create Sock-Client\n", __func__);
 
 //	return snic;
+	return true;
 }
 
 
