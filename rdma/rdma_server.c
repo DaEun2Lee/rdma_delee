@@ -302,8 +302,8 @@ void *sock_rdma_thread(void *arg)
 				printf("%s: event = RDMA_CM_EVENT_CONNECT_REQUEST\n", __func__);
 				r_info->status = RDMA_CM_EVENT_CONNECT_REQUEST;
 				r = on_connect_request(t_event->id);
-				//
-				TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, rdma_sock_thread, NULL));
+				//TODO
+				pthread_create(&s_ctx->cq_poller_thread, NULL, rdma_sock_thread, NULL);
 				break;
 			case RDMA_CM_EVENT_ESTABLISHED:
 				printf("%s: event = RDMA_CM_EVENT_ESTABLISHED\n", __func__);
@@ -328,7 +328,7 @@ void *sock_rdma_thread(void *arg)
 //			break;
 //		}
 	}
-
+	pthread_join(s_ctx->cq_poller_thread, NULL);
         socket_end(c_info);
 	rdma_destroy_id(r_info->listener);
         rdma_destroy_event_channel(r_info->ec);
