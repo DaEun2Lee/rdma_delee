@@ -339,7 +339,7 @@ void *sock_rdma_thread(void *arg)
 //	struct connection *conn = (struct connection *)(r_info->event->id->context);
 
 	while(true){
-//		if(r_info->status == RDMA_CM_EVENT_ESTABLISHED){
+		if(r_info->status == RDMA_CM_EVENT_ESTABLISHED){
 			//TODO
 			//sock->rdma
 			struct rdma_cm_event event_copy;
@@ -378,9 +378,8 @@ void *sock_rdma_thread(void *arg)
 //				rdma_ack_cm_event(r_info->event);
 //				struct rdma_cm_event *t_event = &event_copy;
 
-//			}
-//		} else
-//			sleep(1);
+		} else
+			sleep(1);
         }
 
 	pthread_exit(NULL);
