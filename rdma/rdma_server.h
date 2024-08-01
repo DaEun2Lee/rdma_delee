@@ -73,6 +73,6 @@ bool rdma_sock_thread_init();
 
 
 void *rdma_sock_thread(void *arg);
-void *sock_rdma_thread(void *arg);
+void *sock_rdma_thread();
 
 #endif // RDMA_SERVER_H_
