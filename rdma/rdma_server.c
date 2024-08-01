@@ -275,6 +275,7 @@ void *sock_rdma_thread(void *arg)
 {
 	if(!rdma_sock_thread_init())
 		pthread_exit(NULL);
+	printf("%s: rdma_sock_thread_init", __func__);
 
 	//TODO
 	 while (rdma_get_cm_event(r_info->ec, &r_info->event) == 0) {
@@ -337,6 +338,8 @@ void *sock_rdma_thread(void *arg)
 
 void *rdma_sock_thread(void *ctx)
 {
+	sleep(3);
+
 	//poll_cq
 	struct ibv_cq *cq;
 	struct ibv_wc *wc;
