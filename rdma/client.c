@@ -355,21 +355,26 @@ int on_event(struct rdma_cm_event *event)
 	int r = 0;
 
 	if (event->event == RDMA_CM_EVENT_ADDR_RESOLVED) {
+		printf("%s: event = RDMA_CM_EVENT_ADDR_RESOLVED", __func__);
 		r = on_addr_resolved(event->id);
 
 	} else if (event->event == RDMA_CM_EVENT_ROUTE_RESOLVED) {
+		printf("%s: event = RDMA_CM_EVENT_ROUTE_RESOLVED", __func__);
 		r = on_route_resolved(event->id);
 
 	} else if (event->event == RDMA_CM_EVENT_ESTABLISHED) {
+		printf("%s: event = RDMA_CM_EVENT_ESTABLISHED", __func__);
 		r = on_connection(event->id->context);
 		//@de lee
 		//TODO
 		//Need to insert send func
 //		r = send_while(event->id->context);
 	} else if (event->event == RDMA_CM_EVENT_DISCONNECTED) {
+		printf("%s: event = RDMA_CM_EVENT_DISCONNECTED", __func__);
 //		r = on_disconnect(event->id);
 		r = 0;
 	} else {
+		printf("%s: event = %d", __func__, event->event);
 		die("on_event: unknown event.");
 	}
 
