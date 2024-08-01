@@ -31,11 +31,14 @@ void build_context(struct ibv_context *verbs)
 	s_ctx->ctx = verbs;
 
 	TEST_Z(s_ctx->pd = ibv_alloc_pd(s_ctx->ctx));
+	//check
 	TEST_Z(s_ctx->comp_channel = ibv_create_comp_channel(s_ctx->ctx));
 	TEST_Z(s_ctx->cq = ibv_create_cq(s_ctx->ctx, 10, NULL, s_ctx->comp_channel, 0)); /* cqe=10 is arbitrary */
 	TEST_NZ(ibv_req_notify_cq(s_ctx->cq, 0));
 
-	TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
+	//@delee
+	//TODO
+//	TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
 }
 
 void build_qp_attr(struct ibv_qp_init_attr *qp_attr)
@@ -303,15 +306,66 @@ void *rdma_sock_thread(void *arg)
 //        message[bytesRead] = '\0';
 //        fclose(file);
 
-	//TODO
-	while(true){
-		if (rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
-			struct rdma_cm_event event_copy;
-			rdma_ack_cm_event(r_info->event);
-			if (on_event(&event_copy))
+//	//TODO
+//	while(true){
+//		if (rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
+//			struct rdma_cm_event event_copy;
+//			rdma_ack_cm_event(r_info->event);
+//			if (on_event(&event_copy))
+//				break;
+////			socket_send_message(c_info, message);
+//		}
+//	}
+
+	 while (rdma_get_cm_event(r_info->ec, &r_info->event) == 0) {
+		struct rdma_cm_event event_copy;
+
+		memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
+                rdma_ack_cm_event(r_info->event);
+
+		int r = 0;
+//
+////		if (on_event(&event_copy)){
+//		if (event_copy->event == RDMA_CM_EVENT_CONNECT_REQUEST){
+//			printf("%s: event = RDMA_CM_EVENT_CONNECT_REQUEST", __func__);
+//			r = on_connect_request(event_copy->id);
+//		} else if (event_copy->event == RDMA_CM_EVENT_ESTABLISHED){
+//			printf("%s: event = RDMA_CM_EVENT_ESTABLISHED", __func__);
+//			r = on_connection(event_copy->id->context);
+//		} else if (event_copy->event == RDMA_CM_EVENT_DISCONNECTED){
+//			printf("%s: event = RDMA_CM_EVENT_DISCONNECTED", __func__);
+////			r = on_disconnect(event->id);
+//		} else {
+//			printf("%s: event = %d", __func__, event_copy->event);
+////			die("on_event: unknown event.");
+//		}
+
+		struct rdma_cm_event *t_event = &event_copy;
+		switch (t_event->event) {
+			case RDMA_CM_EVENT_CONNECT_REQUEST:
+				printf("%s: event = RDMA_CM_EVENT_CONNECT_REQUEST\n", __func__);
+				r = on_connect_request(t_event->id);
 				break;
-//			socket_send_message(c_info, message);
+			case RDMA_CM_EVENT_ESTABLISHED:
+				printf("%s: event = RDMA_CM_EVENT_ESTABLISHED\n", __func__);
+				r = on_connection(t_event->id->context);
+				break;
+			case RDMA_CM_EVENT_DISCONNECTED:
+				printf("%s: event = RDMA_CM_EVENT_DISCONNECTED\n", __func__);
+				// r = on_disconnect(t_event->id);
+				break;
+			default:
+				printf("%s: event = %d\n", __func__, t_event->event);
+				// die("on_event: unknown event.");
+				break;
 		}
+		if(r)
+			break;
+
+
+
+//			break;
+//		}
 	}
 
         socket_end(c_info);
@@ -326,9 +380,9 @@ void *sock_rdma_thread(void *arg)
 //	struct server_snic * snic = (struct server_snic *)arg;
 //	struct rdma_thread * r_info = snic->r_info;
 //	struct socket_thread * s_info = snic->s_info;
-	sleep(3);
+//	sleep(3);
 
-	struct connection *conn = (struct connection *)(r_info->event->id->context);
+//	struct connection *conn = (struct connection *)(r_info->event->id->context);
 
 	while(true){
 		//Receive data from Client
@@ -343,10 +397,18 @@ void *sock_rdma_thread(void *arg)
 		printf("%s: Server received data: %s\n", __func__, s_info->buffer);
 		//TODO
 		//sock->rdma
-		memcpy(conn->send_region, s_info->buffer, BUFFER_SIZE);
-		//TODO
-		// ?event_copy
-//               	on_connection(conn);
+		if (rdma_get_cm_event(r_info->ec, &r_info->event) == 0) {
+			struct rdma_cm_event event_copy;
+
+			memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
+			rdma_ack_cm_event(r_info->event);
+			struct rdma_cm_event *t_event = &event_copy;
+
+//		memcpy(r_info->event->id->context->send_region, s_info->buffer, BUFFER_SIZE);
+			//TODO
+			// ?event_copy
+               		on_connection(t_event->id->context);
+		}
         }
 
 	pthread_exit(NULL);

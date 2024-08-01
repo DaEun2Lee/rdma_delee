@@ -30,11 +30,11 @@ struct connection {
 };
 
 struct rdma_thread{
-#if _USE_IPV6
-        struct sockaddr_in6 addr;
-#else
+//#if _USE_IPV6
+//        struct sockaddr_in6 addr;
+//#else
         struct sockaddr_in addr;
-#endif
+//#endif
         struct rdma_cm_event *event;		// = NULL;
         struct rdma_cm_id *listener;		// = NULL;
         struct rdma_event_channel *ec;		// = NULL;
