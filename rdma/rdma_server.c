@@ -122,7 +122,8 @@ void on_completion(struct ibv_wc *wc)
 		//Change func
 		//send rdma -> socket
 		socket_send_message(c_info, conn->recv_region);
-		memset(conn->recv_region, 0, BUFFER_SIZE);
+		sock_rdma_data = conn->recv_region;
+//		memset(conn->recv_region, 0, BUFFER_SIZE);
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("%s: sends completed successfully.\n", __func__);
 	}
@@ -162,7 +163,7 @@ int on_connection(void *context)
 	//@delee
 	//TODO
 //	memcpy(conn->send_region, snic->s_info->buffer, BUFFER_SIZE);
-	memcpy(conn->send_region, sock_rdma_data, BUFFER_SIZE);
+//	memcpy(conn->send_region, sock_rdma_data, BUFFER_SIZE);
 	printf("%s: connected. posting send...\n", __func__);
 
 	memset(&wr, 0, sizeof(wr));
