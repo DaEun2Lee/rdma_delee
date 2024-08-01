@@ -39,6 +39,7 @@ void build_context(struct ibv_context *verbs)
 	TEST_NZ(ibv_req_notify_cq(s_ctx->cq, 0));
 
 //	TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
+	TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, rdma_sock_thread, NULL));
 }
 
 void build_qp_attr(struct ibv_qp_init_attr *qp_attr)
@@ -273,8 +274,8 @@ bool rdma_sock_thread_init()
 
 void *sock_rdma_thread(void *arg)
 {
-	if(!rdma_sock_thread_init())
-		pthread_exit(NULL);
+//	if(!rdma_sock_thread_init())
+//		pthread_exit(NULL);
 	printf("%s: rdma_sock_thread_init", __func__);
 
 	//TODO
@@ -304,7 +305,7 @@ void *sock_rdma_thread(void *arg)
 				r_info->status = RDMA_CM_EVENT_CONNECT_REQUEST;
 				r = on_connect_request(t_event->id);
 				//TODO
-				pthread_create(&s_ctx->cq_poller_thread, NULL, rdma_sock_thread, NULL);
+//				pthread_create(&s_ctx->cq_poller_thread, NULL, rdma_sock_thread, NULL);
 				break;
 			case RDMA_CM_EVENT_ESTABLISHED:
 				printf("%s: event = RDMA_CM_EVENT_ESTABLISHED\n", __func__);
@@ -338,15 +339,13 @@ void *sock_rdma_thread(void *arg)
 
 void *rdma_sock_thread(void *ctx)
 {
-	sleep(3);
-
 	//poll_cq
 	struct ibv_cq *cq;
 	struct ibv_wc *wc;
 
-	wc =NULL;
+	wc = NULL;
 
-	while (true) {
+	while (1) {
 		TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ctx));
 		ibv_ack_cq_events(cq, 1);
 		TEST_NZ(ibv_req_notify_cq(cq, 0));
@@ -372,6 +371,5 @@ void *rdma_sock_thread(void *ctx)
 			}
 		}
 	}
-
-	pthread_exit(NULL);
+	return NULL;
 }
