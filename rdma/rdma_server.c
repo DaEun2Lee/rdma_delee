@@ -118,8 +118,8 @@ void on_completion(struct ibv_wc *wc)
 		//TODO
 		//Change func
 		//send rdma -> socket
-//		socket_send_message(c_info, conn->recv_region);
-//		memset(conn->recv_region, 0, BUFFER_SIZE);
+		socket_send_message(c_info, conn->recv_region);
+		memset(conn->recv_region, 0, BUFFER_SIZE);
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("%s: sends completed successfully.\n", __func__);
 	}
@@ -144,7 +144,7 @@ int on_connect_request(struct rdma_cm_id *id)
   register_memory(conn);
   post_receives(conn);
 
-  memset(&cm_params, 0, sizeof(cm_params));
+//  memset(&cm_params, 0, sizeof(cm_params));
   TEST_NZ(rdma_accept(id, &cm_params));
 
   return 0;
@@ -285,29 +285,29 @@ void *rdma_sock_thread(void *arg)
 //	struct socket_thread * c_info = snic->c_info;
 //	struct socket_thread * c_info = c_info;
 
-        sleep(3);       //Waiting for servers to be ready
+//        sleep(3);       //Waiting for servers to be ready
 
-        //Input message
-        char *message = (char*)malloc(SO_BUFFER_SIZE);
-        FILE *file;
-        file = fopen("request.txt", "r");
-        if (file == NULL) {
-                perror("Failed to open file");
-        }
-        size_t bytesRead = fread(message, sizeof(char), SO_BUFFER_SIZE - 1, file);
-        message[bytesRead] = '\0';
-        fclose(file);
+//        //Input message
+//        char *message = (char*)malloc(SO_BUFFER_SIZE);
+//        FILE *file;
+//        file = fopen("request.txt", "r");
+//        if (file == NULL) {
+//                perror("Failed to open file");
+//        }
+//        size_t bytesRead = fread(message, sizeof(char), SO_BUFFER_SIZE - 1, file);
+//        message[bytesRead] = '\0';
+//        fclose(file);
 
 	//TODO
-//	while(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
-//
-//		struct rdma_cm_event event_copy;
-//
-//		rdma_ack_cm_event(r_info->event);
-//		if (on_event(&event_copy))
-//			break;
-		socket_send_message(c_info, message);
-//	}
+	while(true){
+		if (rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
+			struct rdma_cm_event event_copy;
+			rdma_ack_cm_event(r_info->event);
+			if (on_event(&event_copy))
+				break;
+//			socket_send_message(c_info, message);
+		}
+	}
 
         socket_end(c_info);
 
@@ -320,6 +320,7 @@ void *sock_rdma_thread(void *arg)
 //	struct server_snic * snic = (struct server_snic *)arg;
 //	struct rdma_thread * r_info = snic->r_info;
 //	struct socket_thread * s_info = snic->s_info;
+	struct connection *conn = (struct connection *)(&(r_info->event)->id->context);
 
 	while(true){
 		//Receive data from Client
@@ -334,10 +335,10 @@ void *sock_rdma_thread(void *arg)
 		printf("%s: Server received data: %s\n", __func__, s_info->buffer);
 		//TODO
 		//sock->rdma
-//		memcpy(conn->send_region, s_info->buffer, BUFFER_SIZE);
+		memcpy(conn->send_region, s_info->buffer, BUFFER_SIZE);
 		//TODO
 		// ?event_copy
-               	on_connection(r_info->event->id->context);
+               	on_connection(conn);
         }
 
 	pthread_exit(NULL);
