@@ -38,7 +38,7 @@ void build_context(struct ibv_context *verbs)
 	TEST_Z(s_ctx->cq = ibv_create_cq(s_ctx->ctx, 10, NULL, s_ctx->comp_channel, 0)); /* cqe=10 is arbitrary */
 	TEST_NZ(ibv_req_notify_cq(s_ctx->cq, 0));
 
-	TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
+//	TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, poll_cq, NULL));
 }
 
 void build_qp_attr(struct ibv_qp_init_attr *qp_attr)
@@ -164,7 +164,7 @@ int on_connection(void *context)
 	//@delee
 	//TODO
 //	memcpy(conn->send_region, snic->s_info->buffer, BUFFER_SIZE);
-//	memcpy(conn->send_region, sock_rdma_data, BUFFER_SIZE);
+	memcpy(conn->send_region, sock_rdma_data, BUFFER_SIZE);
 	printf("%s: connected. posting send...\n", __func__);
 
 	memset(&wr, 0, sizeof(wr));
@@ -271,24 +271,29 @@ bool rdma_sock_thread_init()
 }
 
 
-void *rdma_sock_thread(void *arg)
+void *sock_rdma_thread(void *arg)
 {
-	//TODO
-//	while(true){
-//		if (rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
-//			struct rdma_cm_event event_copy;
-//			rdma_ack_cm_event(r_info->event);
-//			if (on_event(&event_copy))
-//				break;
-////			socket_send_message(c_info, message);
-//		}
-//	}
+	if(!rdma_sock_thread_init())
+		pthread_exit(NULL);
 
+	//TODO
 	 while (rdma_get_cm_event(r_info->ec, &r_info->event) == 0) {
 		struct rdma_cm_event event_copy;
 
 		memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
                 rdma_ack_cm_event(r_info->event);
+
+		//sock
+		//Receive data from Client
+		int valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);
+		if (valread < 0) {
+			perror("read");
+			socket_end(s_info);
+			//Print received data
+			printf("%s: Server received message: %s\n", __func__, s_info->buffer);
+
+			sock_rdma_data = s_info->buffer;
+		}
 
 		int r = 0;
 		struct rdma_cm_event *t_event = &event_copy;
@@ -297,11 +302,13 @@ void *rdma_sock_thread(void *arg)
 				printf("%s: event = RDMA_CM_EVENT_CONNECT_REQUEST\n", __func__);
 				r_info->status = RDMA_CM_EVENT_CONNECT_REQUEST;
 				r = on_connect_request(t_event->id);
+				//
+				TEST_NZ(pthread_create(&s_ctx->cq_poller_thread, NULL, rdma_sock_thread, NULL));
 				break;
 			case RDMA_CM_EVENT_ESTABLISHED:
 				printf("%s: event = RDMA_CM_EVENT_ESTABLISHED\n", __func__);
 				r_info->status = RDMA_CM_EVENT_ESTABLISHED;
-//				r = on_connection(t_event->id->context);
+				r = on_connection(t_event->id->context);
 				break;
 			case RDMA_CM_EVENT_DISCONNECTED:
 				printf("%s: event = RDMA_CM_EVENT_DISCONNECTED\n", __func__);
@@ -328,59 +335,40 @@ void *rdma_sock_thread(void *arg)
         pthread_exit(NULL);
 }
 
-void *sock_rdma_thread(void *arg)
+void *rdma_sock_thread(void *ctx)
 {
-	//arg is struct server_snic * sni
-//	struct server_snic * snic = (struct server_snic *)arg;
-//	struct rdma_thread * r_info = snic->r_info;
-//	struct socket_thread * s_info = snic->s_info;
-//	sleep(3);
+	//poll_cq
+	struct ibv_cq *cq;
+	struct ibv_wc *wc;
 
-//	struct connection *conn = (struct connection *)(r_info->event->id->context);
+	wc =NULL;
 
-	while(true){
-		if(r_info->status == RDMA_CM_EVENT_ESTABLISHED){
-			//TODO
-			//sock->rdma
-			struct rdma_cm_event event_copy;
-			memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
-			rdma_ack_cm_event(r_info->event);
-			struct rdma_cm_event *t_event = &event_copy;
+	while (true) {
+		TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ctx));
+		ibv_ack_cq_events(cq, 1);
+		TEST_NZ(ibv_req_notify_cq(cq, 0));
 
-
-			//Receive data from Client
-			int valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);
-			if (valread < 0) {
-				perror("read");
-				socket_end(s_info);
-				//Print received data
-				printf("%s: Server received message: %s\n", __func__,s_info->buffer);
-//				memcpy(conn->send_region, s_info->buffer, BUFFER_SIZE);
-				sock_rdma_data = s_info->buffer;
-				on_connection(t_event->id->context);
-				valread = 0;
+		while (ibv_poll_cq(cq, 1, wc)){
+//			on_completion(&wc);
+			//on_completion
+			if (wc->status != IBV_WC_SUCCESS){
+				printf("%s: on_completion: status is not IBV_WC_SUCCESS.", __func__);
+				break;
 			}
-			//Receive data from Server
-			valread = read(c_info->socket, c_info->buffer, SO_BUFFER_SIZE);
-			if (valread > 0) {
-				printf("%s: Client received response: %s\n", __func__,c_info->buffer);
-//				memcpy(conn->send_region, c_info->buffer, BUFFER_SIZE);
+
+			if (wc->opcode & IBV_WC_RECV) {
+				struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
+				printf("%s: RDMA-Server is received message: \n%s\n", __func__, conn->recv_region);
+				//TODO
+				//send rdma -> socket
+				socket_send_message(c_info, conn->recv_region);
 				sock_rdma_data = c_info->buffer;
-				on_connection(t_event->id->context);
-				valread = 0;
+			} else if (wc->opcode == IBV_WC_SEND) {
+				printf("%s: RDMA sends completed successfully.\n", __func__);
+				sock_rdma_data = NULL;
 			}
-//			//TODO
-//			//sock->rdma
-//			if (rdma_get_cm_event(r_info->ec, &r_info->event) == 0) {
-//				struct rdma_cm_event event_copy;
-//
-//				memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
-//				rdma_ack_cm_event(r_info->event);
-//				struct rdma_cm_event *t_event = &event_copy;
-
-		} else
-			sleep(1);
-        }
+		}
+	}
 
 	pthread_exit(NULL);
 }

@@ -6,8 +6,8 @@ int main(){
 ////	struct server_snic *snic;
 ////	snic = 
 
-	if(!rdma_sock_thread_init())
-		return 0;
+//	if(!rdma_sock_thread_init())
+//		return 0;
 //	printf("%s: Create snic\n", __func__);
 //
 //	//This part is socket <-> rdma
@@ -41,7 +41,7 @@ int main(){
 ////	struct rdma_thread *r_info = rdma_init();
 
 	pthread_t rdma_sock_tid;
-	pthread_t sock_rdma_tid;
+//	pthread_t sock_rdma_tid;
 
 //	if (pthread_create(&rdma_sock_tid, NULL, rdma_sock_thread, snic)) {
 	if (pthread_create(&rdma_sock_tid, NULL, rdma_sock_thread, NULL)) {
@@ -49,13 +49,13 @@ int main(){
 		exit(EXIT_FAILURE);
 	}
 //	if (pthread_create(&sock_rdma_tid, NULL, sock_rdma_thread, snic)) {
-	if (pthread_create(&sock_rdma_tid, NULL, sock_rdma_thread, NULL)) {
-                perror("Failed to create sock_rdma thread");
-                exit(EXIT_FAILURE);
-        }
+//	if (pthread_create(&sock_rdma_tid, NULL, sock_rdma_thread, NULL)) {
+//                perror("Failed to create sock_rdma thread");
+//                exit(EXIT_FAILURE);
+//        }
 
 	pthread_join(rdma_sock_tid, NULL);
-	pthread_join(sock_rdma_tid, NULL);
+//	pthread_join(sock_rdma_tid, NULL);
 
 
 	return 0;
