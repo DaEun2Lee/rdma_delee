@@ -122,7 +122,7 @@ void on_completion(struct ibv_wc *wc)
 		//Change func
 		//send rdma -> socket
 		socket_send_message(c_info, conn->recv_region);
-		sock_rdma_data = conn->recv_region;
+		sock_rdma_data = c_info->buffer;
 //		memset(conn->recv_region, 0, BUFFER_SIZE);
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("%s: sends completed successfully.\n", __func__);
