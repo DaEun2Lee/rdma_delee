@@ -4,10 +4,10 @@
 #include <unistd.h>
 
 //This part records time
-struct timeval  tv;
-double start, end;
+//struct timeval  tv;
+//double start, end;
 
-FILE *fptr;
+//FILE *fptr;
 
 double record_time_file(FILE *fptr, char *message)
 {
@@ -33,3 +33,4 @@ void execution_time(FILE *fptr, double start, double end, char *message)
         fprintf(fptr, "%s: %f sec\n", message, e_time);
         printf("%s: %f sec\n", message, e_time);
 }
+
