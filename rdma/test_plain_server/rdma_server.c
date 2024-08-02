@@ -5,38 +5,13 @@ const int DEFAULT_PORT = 12345;
 
 struct context *s_ctx = NULL;
 
+//struct server_snic *snic;
+
 struct rdma_thread *r_info;
 struct socket_thread *s_info;
 struct socket_thread *c_info;
 
 char *sock_rdma_data = NULL;
-
-//FILE *fptr_rs;
-double record_time_file(FILE *fptr, char *message)
-{
-        //This func reords time in file and returns measurement time.
-        struct timeval  tv;
-        double c_time;
-
-        //Get current time
-        gettimeofday(&tv, NULL);
-        c_time = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
-
-        fprintf(fptr, "%s: %f sec\n", message, c_time);
-        printf("%s: %f sec\n", message, c_time);
-
-        return c_time;
-}
-
-void execution_time(FILE *fptr, double start, double end, char *message)
-{
-
-        double e_time = (end-start) / 1000;
-
-        fprintf(fptr, "%s: %f sec\n", message, e_time);
-        printf("%s: %f sec\n", message, e_time);
-}
-
 
 void die(const char *reason)
 {
@@ -189,7 +164,7 @@ int on_connection(void *context)
 	if(sock_rdma_data != NULL){
 		memcpy(conn->send_region, sock_rdma_data, BUFFER_SIZE);
 		printf("%s: RDMA-Server send data: \n%s\n", __func__, conn->send_region);
-		sock_rdma_data = NULL;
+//		sock_rdma_data = NULL;
         }
 
 //	memcpy(conn->send_region, sock_rdma_data, BUFFER_SIZE);
@@ -298,38 +273,51 @@ bool rdma_sock_thread_init()
 	return true;
 }
 
-bool buffer_set_zero(char *buffer)
-{
-	for (int i = 0; i < SO_BUFFER_SIZE; i++) {
-		if(buffer[i] != 0)
-			return false;
-	}
-	return true;
-}
-
 
 void *sock_rdma_thread()
 {
+//	if(!rdma_sock_thread_init())
+//		pthread_exit(NULL);
 	printf("%s: rdma_sock_thread_init", __func__);
-
-	        //Open result file
-        FILE *fptr_sr = fopen("execution_time_sr.txt", "w");
-        if (fptr_sr == NULL) {
-                printf("Error: Open file!\n");
-                return 0;
-        }
-
-	double start_sr, end_sr;
-	start_sr = record_time_file(fptr_sr, "Start RDMA-on_connect_request");
 
 	struct rdma_cm_event event_copy;
 	struct rdma_cm_event *t_event;
 
+
+//	while(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
+//		memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
+//		rdma_ack_cm_event(r_info->event);
+//                t_event = &event_copy;
+//		if (t_event->event == RDMA_CM_EVENT_CONNECT_REQUEST){
+//			printf("%s: event = RDMA_CM_EVENT_CONNECT_REQUEST\n", __func__);
+//			r_info->status = RDMA_CM_EVENT_CONNECT_REQUEST;
+//			on_connect_request(t_event->id);
+//			break;
+//		}
+
 	//TODO
 	while(true){
+//	 while (rdma_get_cm_event(r_info->ec, &r_info->event) == 0) {
+//		if(sock_rdma_data != NULL&& r_info->status == RDMA_CM_EVENT_ESTABLISHED){
+//			on_connection(t_event->id->context);
+//			sock_rdma_data = NULL;
+////			sleep(10);
+//		}
 		if(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
 			memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
 	                rdma_ack_cm_event(r_info->event);
+//		}
+//		//sock
+//		//Receive data from Client
+//		int valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);
+//		if (valread < 0) {
+//			perror("read");
+//			socket_end(s_info);
+//			//Print received data
+//			printf("%s: Server received message: %s\n", __func__, s_info->buffer);
+//
+//			sock_rdma_data = s_info->buffer;
+//		}
 
 			int r = 0;
 			t_event = &event_copy;
@@ -338,22 +326,20 @@ void *sock_rdma_thread()
 					printf("%s: event = RDMA_CM_EVENT_CONNECT_REQUEST\n", __func__);
 					r_info->status = RDMA_CM_EVENT_CONNECT_REQUEST;
 					r = on_connect_request(t_event->id);
-					end_sr = record_time_file(fptr_sr, "End RDMA-on_connect_request");
-					execution_time(fptr_sr, start_sr, end_sr, "execution time of RDMA-on_connect_request");
-					start_sr = record_time_file(fptr_sr, "Start RDMA- receive RDMA_CM_EVENT_ESTABLISHED");
+					//TODO
+//					sleep(5);
+//					pthread_create(&s_ctx->cq_poller_thread, NULL, rdma_sock_thread, NULL);
 					break;
 				case RDMA_CM_EVENT_ESTABLISHED:
 					printf("%s: event = RDMA_CM_EVENT_ESTABLISHED\n", __func__);
-					end_sr = record_time_file(fptr_sr, "End RDMA- receive RDMA_CM_EVENT_ESTABLISHED");
-					execution_time(fptr_sr, start_sr, end_sr, "execution time of RDMA- receive RDMA_CM_EVENT_ESTABLISHED");
 					r_info->status = RDMA_CM_EVENT_ESTABLISHED;
-					start_sr = record_time_file(fptr_sr, "Start RDMA- on_connection");
-					while(sock_rdma_data == NULL){
+					while(sock_rdma_data != NULL){
+						int cnt =0;
 						sleep(1);
+						printf("\n!!!!!!!!\n%s: cnt = %d\n\n", __func__, cnt++);
 					}
+					sleep(1);
 					r = on_connection(t_event->id->context);
-					end_sr = record_time_file(fptr_sr, "Start RDMA- on_connection");
-					execution_time(fptr_sr, start_sr, end_sr,"execution time of RDMA-on_connection");
 					break;
 				case RDMA_CM_EVENT_DISCONNECTED:
 					printf("%s: event = RDMA_CM_EVENT_DISCONNECTED\n", __func__);
@@ -368,44 +354,26 @@ void *sock_rdma_thread()
 			printf("%s: r = %d\n", __func__, r);
 		}
 
-		if(r_info->status == RDMA_CM_EVENT_ESTABLISHED || r_info->status == RDMA_CM_EVENT_CONNECT_REQUEST){
-			start_sr = record_time_file(fptr_sr, "Start SOCK- Receive data from Client");
+		if(r_info->status == RDMA_CM_EVENT_ESTABLISHED){
 	                //sock
 	                //Receive data from Client
 			int valread = 0;
-			int cnt = 0;
-			while(!buffer_set_zero(c_info->buffer)){
-				sleep(1);
-				printf("\n!!!!!!!!\n%s: cnt = %d\n\n", __func__, cnt++);
-			}
-
-			valread = read(c_info->socket, c_info->buffer, SO_BUFFER_SIZE);
+			valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);
+//			if (valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE)){
 			if (valread > 0){
 				//Print received data
-				printf("%s: Server received message: %s\n", __func__, c_info->buffer);
-				sock_rdma_data = c_info->buffer;
-				end_sr = record_time_file(fptr_sr, "Start SOCK- Receive data from Client");
-				execution_time(fptr_sr, start_sr, end_sr,"execution time of SOCK- Receive data from Client");
+				printf("%s: Server received message: %s\n", __func__, s_info->buffer);
+				sock_rdma_data = s_info->buffer;
 			} else if (valread < 0) {
 				perror("read");
 				socket_end(s_info);
-			} else { //(valread == 0) {
+			} else if (valread == 0) {
 				continue;
-//				if (valread > 0){
-//					valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);
-//					//Print received data
-//					printf("%s: Server received message: %s\n", __func__, s_info->buffer);
-//					sock_rdma_data = s_info->buffer;
-//				} else if (valread < 0) {
-//					perror("read");
-//					socket_end(s_info);
-//				} else { //(valread == 0)
-//					continue;
-//				}
 			}
 		}
 	}
-	      fclose(fptr_sr);
+
+//	pthread_join(s_ctx->cq_poller_thread, NULL);
 //        socket_end(c_info);
 	rdma_destroy_id(r_info->listener);
         rdma_destroy_event_channel(r_info->ec);
@@ -414,16 +382,6 @@ void *sock_rdma_thread()
 
 void *rdma_sock_thread(void *ctx)
 {
-        //Open result file
-        FILE *fptr_rs = fopen("execution_time_rs.txt", "w");
-        if (fptr_rs == NULL) {
-                printf("Error: Open file!\n");
-                return 0;
-        }
-
-	double start_rs, end_rs;
-	start_rs  = record_time_file(fptr_rs, "Start RDMA- Receive data from Client");
-
 	//poll_cq
 	struct ibv_cq *cq;
 	struct ibv_wc *wc;
@@ -447,29 +405,16 @@ void *rdma_sock_thread(void *ctx)
 
 			if (wc->opcode & IBV_WC_RECV) {
 				struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
-
-				end_rs  = record_time_file(fptr_rs, "End RDMA- Receive data from Client");
-				execution_time(fptr_rs, start_rs, end_rs,"execution time of RDMA- Receive data from Client");
-
 				printf("%s: RDMA-Server is received message: \n%s\n", __func__, conn->recv_region);
-
-				start_rs = record_time_file(fptr_rs, "Start SOCK- Send data to WANProxy");
 				//TODO
 				//send rdma -> socket
 				socket_send_message(c_info, conn->recv_region);
-
-				end_rs  = record_time_file(fptr_rs, "End SOCK- Send data to WANProxy");
-				execution_time(fptr_rs, start_rs, end_rs,"execution time of SOCK- Send data to WANProxy");
-				//Need to send
-//				sock_rdma_data = c_info->buffer;
-//				printf("%s: sock_rdma_data = \n%s\n", __func__, sock_rdma_data);
+				sock_rdma_data = c_info->buffer;
+				printf("%s: sock_rdma_data = \n%s\n", __func__, sock_rdma_data);
 			} else if (wc->opcode == IBV_WC_SEND) {
 				printf("%s: RDMA sends completed successfully.\n", __func__);
-				end_rs  = record_time_file(fptr_rs, "End SOCK- Send data to WANProxy(IBV_WC_SEND)");
-				execution_time(fptr_rs, start_rs, end_rs,"execution time of SOCK- Send data to WANProxy(IBV_WC_SEND)");
-//				printf("%s: sock_rdma_data(IBV_WC_SEND) = \n%s\n", __func__,sock_rdma_data);
+				printf("%s: sock_rdma_data(IBV_WC_SEND) = \n%s\n", __func__,sock_rdma_data);
 //				sock_rdma_data = NULL;
-				      fclose(fptr_rs);
 			}
 		}
 	}
