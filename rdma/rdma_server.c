@@ -11,7 +11,7 @@ struct rdma_thread *r_info;
 struct socket_thread *s_info;
 struct socket_thread *c_info;
 
-char *sock_rdma_data;
+char *sock_rdma_data = NULL;
 
 void die(const char *reason)
 {
@@ -161,7 +161,7 @@ int on_connection(void *context)
 	//TODO
 //	memcpy(conn->send_region, snic->s_info->buffer, BUFFER_SIZE);
 	//sock -> rdma
-	while(sock_rdma_data != NULL){
+	if(sock_rdma_data != NULL){
 		memcpy(conn->send_region, sock_rdma_data, BUFFER_SIZE);
 		printf("%s: RDMA-Server send data: \n%s\n", __func__, conn->send_region);
 //		sock_rdma_data = NULL;
@@ -298,10 +298,11 @@ void *sock_rdma_thread()
 	//TODO
 	while(true){
 //	 while (rdma_get_cm_event(r_info->ec, &r_info->event) == 0) {
-		if(sock_rdma_data != NULL && r_info->status == RDMA_CM_EVENT_ESTABLISHED){
-			on_connection(t_event->id->context);
-			sock_rdma_data = NULL;
-		}
+//		if(sock_rdma_data != NULL&& r_info->status == RDMA_CM_EVENT_ESTABLISHED){
+//			on_connection(t_event->id->context);
+//			sock_rdma_data = NULL;
+////			sleep(10);
+//		}
 		if(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
 			memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
 	                rdma_ack_cm_event(r_info->event);
@@ -326,11 +327,18 @@ void *sock_rdma_thread()
 					r_info->status = RDMA_CM_EVENT_CONNECT_REQUEST;
 					r = on_connect_request(t_event->id);
 					//TODO
+//					sleep(5);
 //					pthread_create(&s_ctx->cq_poller_thread, NULL, rdma_sock_thread, NULL);
 					break;
 				case RDMA_CM_EVENT_ESTABLISHED:
 					printf("%s: event = RDMA_CM_EVENT_ESTABLISHED\n", __func__);
 					r_info->status = RDMA_CM_EVENT_ESTABLISHED;
+					while(sock_rdma_data != NULL){
+						int cnt =0;
+						sleep(1);
+						printf("\n!!!!!!!!\n%s: cnt = %d\n\n", __func__, cnt++);
+					}
+					sleep(1);
 					r = on_connection(t_event->id->context);
 					break;
 				case RDMA_CM_EVENT_DISCONNECTED:
@@ -405,8 +413,8 @@ void *rdma_sock_thread(void *ctx)
 				printf("%s: sock_rdma_data = \n%s\n", __func__, sock_rdma_data);
 			} else if (wc->opcode == IBV_WC_SEND) {
 				printf("%s: RDMA sends completed successfully.\n", __func__);
-//				printf("%s: sock_rdma_data = \n%s\n", __func__,sock_rdma_data);
-				sock_rdma_data = NULL;
+				printf("%s: sock_rdma_data(IBV_WC_SEND) = \n%s\n", __func__,sock_rdma_data);
+//				sock_rdma_data = NULL;
 			}
 		}
 	}
