@@ -12,7 +12,7 @@
 double record_time_file(FILE *fptr, char *message)
 {
 	//This func reords time in file and returns measurement time.
-	struct timeval  tv;
+	struct timeval tv;
 	double c_time;
 
 	//Get current time

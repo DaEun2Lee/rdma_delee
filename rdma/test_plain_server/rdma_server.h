@@ -3,10 +3,6 @@
 
 #include <rdma/rdma_cma.h>
 #include "socket.h"		//made by delee
-//#include "common.h"
-#include <time.h>
-#include <sys/time.h>
-#include <unistd.h>
 
 #define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
@@ -55,8 +51,6 @@ struct server_snic{
 //struct context *s_ctx = NULL;
 
 //struct server_snic *snic;
-double record_time_file(FILE *fptr, char *message);
-void execution_time(FILE *fptr, double start, double end, char *message);
 
 void die(const char *reason);
 

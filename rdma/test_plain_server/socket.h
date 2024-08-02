@@ -15,7 +15,7 @@
 #define SO_IP "10.0.0.1"                //Dest IP
 #define SO_SND_PORT 3300                //sock-> wanproxy
 #define SO_RCV_PORT 8080                //sock -> rdma
-#define SO_BUFFER_SIZE 1024*2
+#define SO_BUFFER_SIZE 1024
 
 //char sock_rdma_buffer[SO_BUFFER_SIZE] = {0};
 //char rdma_sock_buffer[SO_BUFFER_SIZE] = {0};
