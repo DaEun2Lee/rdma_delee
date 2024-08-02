@@ -273,6 +273,15 @@ bool rdma_sock_thread_init()
 	return true;
 }
 
+bool buffer_set_zero(char *buffer)
+{
+	for (int i = 0; i < SO_BUFFER_SIZE; i++) {
+		if(buffer[i] != 0)
+			return false;
+	}
+	return true;
+}
+
 
 void *sock_rdma_thread()
 {
@@ -333,12 +342,11 @@ void *sock_rdma_thread()
 				case RDMA_CM_EVENT_ESTABLISHED:
 					printf("%s: event = RDMA_CM_EVENT_ESTABLISHED\n", __func__);
 					r_info->status = RDMA_CM_EVENT_ESTABLISHED;
-					while(sock_rdma_data != NULL){
-						int cnt =0;
+					while(sock_rdma_data == NULL){
+//						int cnt = 0;
 						sleep(1);
-						printf("\n!!!!!!!!\n%s: cnt = %d\n\n", __func__, cnt++);
+//						printf("\n!!!!!!!!\n%s: cnt = %d\n\n", __func__, cnt++);
 					}
-					sleep(1);
 					r = on_connection(t_event->id->context);
 					break;
 				case RDMA_CM_EVENT_DISCONNECTED:
@@ -354,21 +362,37 @@ void *sock_rdma_thread()
 			printf("%s: r = %d\n", __func__, r);
 		}
 
-		if(r_info->status == RDMA_CM_EVENT_ESTABLISHED){
+		if(r_info->status == RDMA_CM_EVENT_ESTABLISHED || r_info->status == RDMA_CM_EVENT_CONNECT_REQUEST){
 	                //sock
 	                //Receive data from Client
 			int valread = 0;
-			valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);
-//			if (valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE)){
+			while(!buffer_set_zero(c_info->buffer)){
+				int cnt = 0;
+				sleep(1);
+				printf("\n!!!!!!!!\n%s: cnt = %d\n\n", __func__, cnt++);
+			}
+
+			valread = read(c_info->socket, c_info->buffer, SO_BUFFER_SIZE);
 			if (valread > 0){
 				//Print received data
-				printf("%s: Server received message: %s\n", __func__, s_info->buffer);
-				sock_rdma_data = s_info->buffer;
+				printf("%s: Server received message: %s\n", __func__, c_info->buffer);
+				sock_rdma_data = c_info->buffer;
 			} else if (valread < 0) {
 				perror("read");
 				socket_end(s_info);
-			} else if (valread == 0) {
+			} else { //(valread == 0) {
 				continue;
+//				if (valread > 0){
+//					valread = read(s_info->socket, s_info->buffer, SO_BUFFER_SIZE);
+//					//Print received data
+//					printf("%s: Server received message: %s\n", __func__, s_info->buffer);
+//					sock_rdma_data = s_info->buffer;
+//				} else if (valread < 0) {
+//					perror("read");
+//					socket_end(s_info);
+//				} else { //(valread == 0)
+//					continue;
+//				}
 			}
 		}
 	}
@@ -409,11 +433,12 @@ void *rdma_sock_thread(void *ctx)
 				//TODO
 				//send rdma -> socket
 				socket_send_message(c_info, conn->recv_region);
-				sock_rdma_data = c_info->buffer;
-				printf("%s: sock_rdma_data = \n%s\n", __func__, sock_rdma_data);
+				//Need to send
+//				sock_rdma_data = c_info->buffer;
+//				printf("%s: sock_rdma_data = \n%s\n", __func__, sock_rdma_data);
 			} else if (wc->opcode == IBV_WC_SEND) {
 				printf("%s: RDMA sends completed successfully.\n", __func__);
-				printf("%s: sock_rdma_data(IBV_WC_SEND) = \n%s\n", __func__,sock_rdma_data);
+//				printf("%s: sock_rdma_data(IBV_WC_SEND) = \n%s\n", __func__,sock_rdma_data);
 //				sock_rdma_data = NULL;
 			}
 		}
