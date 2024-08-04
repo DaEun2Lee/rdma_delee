@@ -8,12 +8,12 @@ CXX := g++
 
 #APPS := test_server test_client test_socket
 #APPS := test_socket
-APPS := server
+APPS := client server
 
 all: ${APPS}
 
-#client: client.c
-#	${CC} ${CXXFLAGS} -o $@ $^ ${LDLIBS}
+client: client.c
+	${CC} ${CXXFLAGS} -o $@ $^ ${LDLIBS}
 
 server: server_main.c rdma_server.c socket.c
 	${CC} ${CFLAGS} -o $@ $^ ${LDLIBS}
