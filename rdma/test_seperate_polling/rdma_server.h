@@ -72,7 +72,8 @@ struct rdma_thread * rdma_init();
 bool rdma_sock_thread_init();
 
 
-void *rdma_sock_thread(void *arg);
-void *sock_rdma_thread();
+//void *rdma_sock_thread(void *arg);
+void *rdma_sock_thread();
+void *sock_rdma_thread(void *ctx);
 
 #endif // RDMA_SERVER_H_

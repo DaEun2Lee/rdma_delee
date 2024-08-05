@@ -374,27 +374,34 @@ void *rdma_sock_thread()
         pthread_exit(NULL);
 }
 
-void *rdma_sock_thread(void *ctx)
+void *sock_rdma_thread(void *ctx)
 {
 	//poll_cq
 	struct ibv_cq *cq;
 	struct ibv_wc *wc;
 
 	wc = malloc(sizeof(struct ibv_wc));
+	struct rdma_cm_event event_copy;
+        struct rdma_cm_event *t_event;
+	t_event = &event_copy;
+	if(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
+                memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
+                rdma_ack_cm_event(r_info->event);
 
+		sock_rdma_data = c_info->buffer;
+		on_connection(t_event->id->context);
 
+		TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ctx));
+		ibv_ack_cq_events(cq, 1);
+		TEST_NZ(ibv_req_notify_cq(cq, 0));
+		ibv_poll_cq(cq, 1, wc);
 
-	sock_rdma_data = c_info->buffer;
-	r = on_connection(t_event->id->context);
-
-	TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ctx));
-	ibv_ack_cq_events(cq, 1);
-	TEST_NZ(ibv_req_notify_cq(cq, 0));
-	ibv_poll_cq(cq, 1, wc)
-
-	if (wc->opcode == IBV_WC_SEND) {
-		printf("%s: RDMA sends completed successfully.\n", __func__);
+		if (wc->opcode == IBV_WC_SEND) {
+			printf("%s: RDMA sends completed successfully.\n", __func__);
+		}
+	}
 	return NULL;
+}
 //	while (1) {
 //		if(sock_rdma_data == NULL)
 //			sleep(3);
@@ -430,5 +437,5 @@ void *rdma_sock_thread(void *ctx)
 //		}
 //	}
 //	return NULL;
-}
+//}
  
