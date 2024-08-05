@@ -1,0 +1,6 @@
+GET /index.html HTTP/1.1
+Host: 10.20.16.78
+User-Agent: CustomClient/1.0
+Accept: */*
+Connection: close
+
