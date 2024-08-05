@@ -4,7 +4,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <rdma/rdma_cma.h>
-//#include "test_socket.h"
 #include <rdma/rdma_verbs.h>
 #include <pthread.h>
 #include <sys/types.h>
