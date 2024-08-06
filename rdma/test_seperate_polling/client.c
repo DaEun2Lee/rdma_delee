@@ -56,7 +56,7 @@ static void register_memory(struct connection *conn);
 static int on_addr_resolved(struct rdma_cm_id *id);
 static void on_completion(struct ibv_wc *wc);
 static int on_connection(void *context);
-//static int on_disconnect(struct rdma_cm_id *id);
+static int on_disconnect(struct rdma_cm_id *id);
 static int on_event(struct rdma_cm_event *event);
 static int on_route_resolved(struct rdma_cm_id *id);
 
@@ -170,7 +170,7 @@ void * poll_cq(void *ctx)
 		TEST_NZ(ibv_req_notify_cq(cq, 0));
 
 		while (ibv_poll_cq(cq, 1, &wc))
-		on_completion(&wc);
+			on_completion(&wc);
 	}
 
 	return NULL;
@@ -249,47 +249,15 @@ void on_completion(struct ibv_wc *wc)
 
 	} else if (wc->opcode == IBV_WC_SEND) {
 		printf("send completed successfully.\n");
-
-		//@delee
-		//TODO
 		printf("RDMA-Client send message : %s\n", conn->send_region);
-//		conn->send_region = NULL;
-//		printf("Before : %s\n", conn->send_region);
 
 	} else {
 		die("on_completion: completion isn't a send or a receive.");
 	}
 
-//	if (++conn->num_completions == 2)
-//		rdma_disconnect(conn->id);
+	if (++conn->num_completions == 2)
+		rdma_disconnect(conn->id);
 }
-
-//int on_connection(void *context)
-//{
-//  struct connection *conn = (struct connection *)context;
-//  struct ibv_send_wr wr, *bad_wr = NULL;
-//  struct ibv_sge sge;
-//
-//  snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
-//
-//  printf("connected. posting send...\n");
-//
-//  memset(&wr, 0, sizeof(wr));
-//
-//  wr.wr_id = (uintptr_t)conn;
-//  wr.opcode = IBV_WR_SEND;
-//  wr.sg_list = &sge;
-//  wr.num_sge = 1;
-//  wr.send_flags = IBV_SEND_SIGNALED;
-//
-//  sge.addr = (uintptr_t)conn->send_region;
-//  sge.length = BUFFER_SIZE;
-//  sge.lkey = conn->send_mr->lkey;
-//
-//  TEST_NZ(ibv_post_send(conn->qp, &wr, &bad_wr));
-//
-//  return 0;
-//}
 
 int on_connection(void *context)
 {
@@ -303,7 +271,7 @@ int on_connection(void *context)
 	//Input message
 //	strcpy(conn->send_region, message);
 	memcpy(conn->send_region, message, BUFFER_SIZE);
-
+	printf("%s: RDMA-Client send message:\n%s\n\n", __func__, conn->send_region);
 	printf("connected. posting send...\n");
 
 	memset(&wr, 0, sizeof(wr));
@@ -323,27 +291,27 @@ int on_connection(void *context)
 	return 0;
 }
 
-//int on_disconnect(struct rdma_cm_id *id)
-//{
-//	struct connection *conn = (struct connection *)id->context;
-//
-//	printf("disconnected.\n");
-//
-//	rdma_destroy_qp(id);
-//
-//	ibv_dereg_mr(conn->send_mr);
-//	ibv_dereg_mr(conn->recv_mr);
-//
-//	free(conn->send_region);
-//	free(conn->recv_region);
-//
-//	free(conn);
-//
-//	rdma_destroy_id(id);
-//
-////	return 1; /* exit event loop */
+int on_disconnect(struct rdma_cm_id *id)
+{
+	struct connection *conn = (struct connection *)id->context;
+
+	printf("disconnected.\n");
+
+	rdma_destroy_qp(id);
+
+	ibv_dereg_mr(conn->send_mr);
+	ibv_dereg_mr(conn->recv_mr);
+
+	free(conn->send_region);
+	free(conn->recv_region);
+
+	free(conn);
+
+	rdma_destroy_id(id);
+
+	return 1; /* exit event loop */
 //	return 0;
-//}
+}
 
 int on_event(struct rdma_cm_event *event)
 {
@@ -366,8 +334,7 @@ int on_event(struct rdma_cm_event *event)
 //		r = send_while(event->id->context);
 	} else if (event->event == RDMA_CM_EVENT_DISCONNECTED) {
 		printf("%s: event = RDMA_CM_EVENT_DISCONNECTED\n", __func__);
-//		r = on_disconnect(event->id);
-		r = 0;
+		r = on_disconnect(event->id);
 	} else if (event->event == RDMA_CM_EVENT_UNREACHABLE) {
 		die("on_event: event = RDMA_CM_EVENT_UNREACHABLE\n");
 	} else {
