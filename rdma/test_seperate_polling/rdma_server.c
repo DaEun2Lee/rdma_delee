@@ -316,62 +316,62 @@ void *rdma_sock_thread()
 	wc = malloc(sizeof(struct ibv_wc));
 
 	while(true){
-	if(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
-		memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
-		rdma_ack_cm_event(r_info->event);
+		if(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
+			memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
+			rdma_ack_cm_event(r_info->event);
 
-		t_event = &event_copy;
-		// #1 Recv requet from RDMA-Client 
-		if(t_event->event == RDMA_CM_EVENT_CONNECT_REQUEST){
-			printf("%s: event = RDMA_CM_EVENT_CONNECT_REQUEST\n", __func__);
-			r_info->status = RDMA_CM_EVENT_CONNECT_REQUEST;
-			on_connect_request(t_event->id);
+			t_event = &event_copy;
+			// #1 Recv requet from RDMA-Client 
+			if(t_event->event == RDMA_CM_EVENT_CONNECT_REQUEST){
+				printf("%s: event = RDMA_CM_EVENT_CONNECT_REQUEST\n", __func__);
+				r_info->status = RDMA_CM_EVENT_CONNECT_REQUEST;
+				on_connect_request(t_event->id);
 
-			TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ev_ctx));
-			ibv_ack_cq_events(cq, 1);
-			TEST_NZ(ibv_req_notify_cq(cq, 0));
-			while(true){
-				ibv_poll_cq(cq, 1, wc);
-				if (wc->status != IBV_WC_SUCCESS){
-					printf("%s: on_completion: status is not IBV_WC_SUCCESS.", __func__);
-					break;
+				TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ev_ctx));
+				ibv_ack_cq_events(cq, 1);
+				TEST_NZ(ibv_req_notify_cq(cq, 0));
+				while(true){
+					ibv_poll_cq(cq, 1, wc);
+					if (wc->status != IBV_WC_SUCCESS){
+						printf("%s: on_completion: status is not IBV_WC_SUCCESS.", __func__);
+						break;
+					}
+					if (wc->opcode & IBV_WC_RECV) {
+						struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
+						printf("%s: RDMA-Server is received message: \n%s\n", __func__, conn->recv_region);
+						//socket connection
+						if(!socket_connect(c_info))
+							return false;
+						printf("%s: Socket-client conencted\n", __func__);
+						//send message to WANProxy
+						socket_send_message(c_info, conn->recv_region);
+						sock_rdma_data = c_info->buffer;
+						break;
+					}
 				}
-				if (wc->opcode & IBV_WC_RECV) {
-					struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
-					printf("%s: RDMA-Server is received message: \n%s\n", __func__, conn->recv_region);
-					//socket connection
-					if(!socket_connect(c_info))
-						return false;
-					printf("%s: Socket-client conencted\n", __func__);
-					//send message to WANProxy
-					socket_send_message(c_info, conn->recv_region);
-					sock_rdma_data = c_info->buffer;
-					break;
+			} else if(t_event->event == RDMA_CM_EVENT_ESTABLISHED){
+				printf("%s: event = RDMA_CM_EVENT_ESTABLISHED\n", __func__);
+				r_info->status = RDMA_CM_EVENT_ESTABLISHED;
+				//Socket_rdma
+				if (pthread_create(&sock_rdma_tid, NULL, sock_rdma_thread, t_event)) {
+	                                                perror("Failed to create sock_rdma thread");
+	                                                exit(EXIT_FAILURE);
 				}
+				socket_end(c_info);
+				c_info = client_thread_init();
+				if(c_info == NULL)
+					return false;
+			} else if(t_event->event == RDMA_CM_EVENT_DISCONNECTED){
+				printf("%s: event = RDMA_CM_EVENT_DISCONNECTED\n", __func__);
+				r_info->status = RDMA_CM_EVENT_DISCONNECTED;
+				on_disconnect(t_event->id);
+				s_ctx = NULL;
+			} else {
+				printf("%s: event = %d\n", __func__, t_event->event);
+				die("on_event: unknown event.");
+				break;
 			}
-		} else if(t_event->event == RDMA_CM_EVENT_ESTABLISHED){
-			printf("%s: event = RDMA_CM_EVENT_ESTABLISHED\n", __func__);
-			r_info->status = RDMA_CM_EVENT_ESTABLISHED;
-			//Socket_rdma
-			if (pthread_create(&sock_rdma_tid, NULL, sock_rdma_thread, t_event)) {
-                                                perror("Failed to create sock_rdma thread");
-                                                exit(EXIT_FAILURE);
-			}
-			socket_end(c_info);
-			c_info = client_thread_init();
-        if(c_info == NULL)
-                return false;
-		} else if(t_event->event == RDMA_CM_EVENT_DISCONNECTED){
-			printf("%s: event = RDMA_CM_EVENT_DISCONNECTED\n", __func__);
-			r_info->status = RDMA_CM_EVENT_DISCONNECTED;
-			on_disconnect(t_event->id);
-			s_ctx = NULL;
-		} else {
-			printf("%s: event = %d\n", __func__, t_event->event);
-			die("on_event: unknown event.");
-			break;
 		}
-	}
 	}
 
 	pthread_join(sock_rdma_tid, NULL);
