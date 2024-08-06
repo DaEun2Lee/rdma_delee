@@ -145,7 +145,7 @@ int on_connect_request(struct rdma_cm_id *id)
 	register_memory(conn);
 	post_receives(conn);
 
-//  memset(&cm_params, 0, sizeof(cm_params));
+	memset(&cm_params, 0, sizeof(cm_params));
 	TEST_NZ(rdma_accept(id, &cm_params));
 
 	return 0;
@@ -185,7 +185,27 @@ int on_connection(void *context)
 	return 1;
 }
 
+int on_disconnect(struct rdma_cm_id *id)
+{
+        struct connection *conn = (struct connection *)id->context;
 
+        printf("disconnected.\n");
+
+        rdma_destroy_qp(id);
+
+        ibv_dereg_mr(conn->send_mr);
+        ibv_dereg_mr(conn->recv_mr);
+
+        free(conn->send_region);
+        free(conn->recv_region);
+
+        free(conn);
+
+        rdma_destroy_id(id);
+
+//      return 1; /* exit event loop */
+        return 0;
+}
 
 int on_event(struct rdma_cm_event *event)
 {
@@ -337,20 +357,25 @@ void *rdma_sock_thread()
                                                 perror("Failed to create sock_rdma thread");
                                                 exit(EXIT_FAILURE);
 			}
+			socket_end(c_info);
+			c_info = client_thread_init();
+        if(c_info == NULL)
+                return false;
 		} else if(t_event->event == RDMA_CM_EVENT_DISCONNECTED){
 			printf("%s: event = RDMA_CM_EVENT_DISCONNECTED\n", __func__);
 			r_info->status = RDMA_CM_EVENT_DISCONNECTED;
-//			on_disconnect(t_event->id);
+			on_disconnect(t_event->id);
+			s_ctx = NULL;
 		} else {
 			printf("%s: event = %d\n", __func__, t_event->event);
-			// die("on_event: unknown event.");
-//			break;
+			die("on_event: unknown event.");
+			break;
 		}
 	}
 	}
 
 	pthread_join(sock_rdma_tid, NULL);
-        socket_end(c_info);
+//        socket_end(c_info);
 	rdma_destroy_id(r_info->listener);
         rdma_destroy_event_channel(r_info->ec);
         pthread_exit(NULL);
@@ -364,11 +389,11 @@ void *sock_rdma_thread(void *arg)
 //	memcpy(conn->send_region, sock_rdma_data, BUFFER_SIZE-1);
 
 	//poll_cq
-	struct ibv_cq *cq;
-	struct ibv_wc *wc;
-	void *ev_ctx;
-	wc = malloc(sizeof(struct ibv_wc));
-	struct rdma_cm_event event_copy;
+//	struct ibv_cq *cq;
+//	struct ibv_wc *wc;
+//	void *ev_ctx;
+//	wc = malloc(sizeof(struct ibv_wc));
+//	struct rdma_cm_event event_copy;
 //        struct rdma_cm_event *t_event;
 //	t_event = &event_copy;
 //
@@ -385,25 +410,25 @@ void *sock_rdma_thread(void *arg)
 
 
 //	bool flag = true;
-	while(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
-                memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
-                rdma_ack_cm_event(r_info->event);
-
-		//Send Message to RDMA-Client
-//		if(flag){
-//			on_connection(t_event->id->context);
-//			flag = false;
+//	while(rdma_get_cm_event(r_info->ec, &r_info->event) == 0){
+//                memcpy(&event_copy, r_info->event, sizeof(*r_info->event));
+//                rdma_ack_cm_event(r_info->event);
+//
+//		//Send Message to RDMA-Client
+////		if(flag){
+////			on_connection(t_event->id->context);
+////			flag = false;
+////		}
+//
+//		TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ev_ctx));
+//		ibv_ack_cq_events(cq, 1);
+//		TEST_NZ(ibv_req_notify_cq(cq, 0));
+//		ibv_poll_cq(cq, 1, wc);
+//
+//		if (wc->opcode == IBV_WC_SEND) {
+//			printf("%s: RDMA sends completed successfully.\n", __func__);
+//			break;
 //		}
-
-		TEST_NZ(ibv_get_cq_event(s_ctx->comp_channel, &cq, &ev_ctx));
-		ibv_ack_cq_events(cq, 1);
-		TEST_NZ(ibv_req_notify_cq(cq, 0));
-		ibv_poll_cq(cq, 1, wc);
-
-		if (wc->opcode == IBV_WC_SEND) {
-			printf("%s: RDMA sends completed successfully.\n", __func__);
-			break;
-		}
-	}
+//	}
 	return NULL;
 }
