@@ -1,23 +1,15 @@
-#ifndef RDMA_CLIENT_H
-#define RDMA_CLIENT_H
+#ifndef RDMA_SERVER_H_
+#define RDMA_SERVER_H_
 
-#include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 #include <rdma/rdma_cma.h>
-#include <rdma/rdma_verbs.h>
-#include <pthread.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
+#include "socket.h"		//made by delee
 
 #define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
 
-char message[1024];
 
+//const int BUFFER_SIZE = 1024;
+//const int DEFAULT_PORT = 12345;
 struct context {
 	struct ibv_context *ctx;
 	struct ibv_pd *pd;
@@ -28,7 +20,6 @@ struct context {
 };
 
 struct connection {
-	struct rdma_cm_id *id;
 	struct ibv_qp *qp;
 
 	struct ibv_mr *recv_mr;
@@ -36,8 +27,6 @@ struct connection {
 
 	char *recv_region;
 	char *send_region;
-
-	int num_completions;
 };
 
 struct rdma_thread{
@@ -46,17 +35,22 @@ struct rdma_thread{
 //#else
         struct sockaddr_in addr;
 //#endif
-//	struct addrinfo *addr;
-        struct rdma_cm_event *event;            // = NULL;
-        struct rdma_cm_id *conn;            // = NULL;
-        struct rdma_event_channel *ec;          // = NULL;
+        struct rdma_cm_event *event;		// = NULL;
+        struct rdma_cm_id *listener;		// = NULL;
+        struct rdma_event_channel *ec;		// = NULL;
 
-        int status;
+	int status;
 };
 
-//FILE *open_record_file();
-struct rdma_thread * rdma_init();
-int rdma_sock_linker();
+struct server_snic{
+	struct rdma_thread *r_info;
+	struct socket_thread *s_info;
+	struct socket_thread *c_info;
+};
+
+//struct context *s_ctx = NULL;
+
+//struct server_snic *snic;
 
 void die(const char *reason);
 
@@ -66,11 +60,20 @@ void * poll_cq(void *);
 void post_receives(struct connection *conn);
 void register_memory(struct connection *conn);
 
-int on_addr_resolved(struct rdma_cm_id *id);
 void on_completion(struct ibv_wc *wc);
+int on_connect_request(struct rdma_cm_id *id);
 int on_connection(void *context);
-int on_disconnect(struct rdma_cm_id *id);
+//static int on_disconnect(struct rdma_cm_id *id);
 int on_event(struct rdma_cm_event *event);
-int on_route_resolved(struct rdma_cm_id *id);
 
-#endif // RDMA_CLIENT_H
+struct rdma_thread * rdma_init();
+ //void rdma_init();
+//struct server_snic * rdma_sock_thread_init();
+bool rdma_sock_thread_init();
+
+
+//void *rdma_sock_thread(void *arg);
+void *rdma_sock_thread();
+void *sock_rdma_thread(void *arg);
+//void *sock_rdma_thread(struct rdma_cm_event *event);
+#endif // RDMA_SERVER_H_
