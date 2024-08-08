@@ -8,15 +8,15 @@ CXX := g++
 
 #APPS := test_server test_client test_socket
 #APPS := test_socket
-APPS := server client tcp_client
+APPS := server client
 
 all: ${APPS}
 
-tcp_client : tcp_client.c
-	gcc -shared -fPIC -o librdmasocket.so tcp_client.c -ldl
+#tcp_client : tcp_client.c
+#	gcc -shared -fPIC -o librdmasocket.so tcp_client.c -ldl
 #	${CC} ${CXXFLAGS} -o librdma.so $@ $^ ${LDLIBS}
 
-client: client.c rdma_client.c
+client: client_main.c rdma_client.c
 	${CC} ${CXXFLAGS} -o $@ $^ ${LDLIBS}
 
 server: server_main.c rdma_server.c socket.c
