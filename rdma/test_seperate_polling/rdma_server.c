@@ -3,6 +3,7 @@
 const int BUFFER_SIZE = 1024;
 const int DEFAULT_PORT = 12345;
 
+
 struct context *s_ctx = NULL;
 
 //struct server_snic *snic;
@@ -12,6 +13,8 @@ struct rdma_thread *r_info;
 struct socket_thread *c_info;
 
 char *sock_rdma_data = NULL;
+const unsigned int RDMA_REQUEST_CONNECT_SOCKET = 1;
+
 
 void die(const char *reason)
 {
@@ -336,16 +339,21 @@ void *rdma_sock_thread()
 						printf("%s: on_completion: status is not IBV_WC_SUCCESS.", __func__);
 						break;
 					}
+
 					if (wc->opcode & IBV_WC_RECV) {
 						struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
 						printf("%s: RDMA-Server is received message: \n%s\n", __func__, conn->recv_region);
-						//socket connection
-						if(!socket_connect(c_info))
-							return false;
-						printf("%s: Socket-client conencted\n", __func__);
-						//send message to WANProxy
-						socket_send_message(c_info, conn->recv_region);
-						sock_rdma_data = c_info->buffer;
+						uint32_t imm_data = ntohl(wc->imm_data);
+						if(imm_data == RDMA_REQUEST_CONNECT_SOCKET){
+							printf("%s: RDMA_REQUEST_CONNECT_SOCKET is OK\n", __func__);
+							//socket connection
+							if(!socket_connect(c_info))
+								return false;
+							printf("%s: Socket-client conencted\n", __func__);
+							//send message to WANProxy
+							socket_send_message(c_info, conn->recv_region);
+							sock_rdma_data = c_info->buffer;
+						}
 						break;
 					}
 				}
