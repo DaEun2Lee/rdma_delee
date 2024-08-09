@@ -12,9 +12,7 @@ int rdma_sock_linker();
 
 // 사용자 정의 함수
 int socket(int domain, int type, int protocol) {
-	printf("hook");
     if (!original_socket) {
-	printf("!original_socket\n");
         // 원래의 socket() 함수 주소를 가져옵니다.
         original_socket = dlsym(RTLD_NEXT, "socket");
         if (!original_socket) {
