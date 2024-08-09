@@ -21,8 +21,8 @@ struct rdma_thread * rdma_init()
 	r_info->ec = NULL;
 	memset(&(r_info->addr), 0, sizeof(r_info->addr));
 
-	struct addrinfo *addr_info = NULL; //
-	TEST_NZ(getaddrinfo(DEFAULT_IP, DEFAULT_PORT, NULL, &addr_info));
+//	struct addrinfo *addr_info = NULL; //
+//	TEST_NZ(getaddrinfo(DEFAULT_IP, DEFAULT_PORT, NULL, &addr_info));
 	//addrinfo  => sockaddr_in
 	r_info->addr.sin_family = AF_INET;
 	r_info->addr.sin_port = htons(atoi(DEFAULT_PORT));
@@ -32,9 +32,9 @@ struct rdma_thread * rdma_init()
 
 	TEST_Z(r_info->ec = rdma_create_event_channel());
 	TEST_NZ(rdma_create_id(r_info->ec, &r_info->conn, NULL, RDMA_PS_TCP));
-	TEST_NZ(rdma_resolve_addr(r_info->conn, NULL, addr_info->ai_addr, TIMEOUT_IN_MS));
-
-	freeaddrinfo(addr_info);
+//	TEST_NZ(rdma_resolve_addr(r_info->conn, NULL, addr_info->ai_addr, TIMEOUT_IN_MS));
+	TEST_NZ(rdma_resolve_addr(r_info->conn, NULL, (struct sockaddr *)&(r_info->addr), TIMEOUT_IN_MS));
+//	freeaddrinfo(addr_info);
 
 	return r_info;
 }
@@ -281,7 +281,7 @@ int on_connection_req_sock(void *context)
 	wr.num_sge = 1;
 	wr.send_flags = IBV_SEND_SIGNALED;
 	wr.imm_data = htonl(RDMA_REQUEST_CONNECT_SOCKET);       //(0x12345678);
-
+	printf("%s: imm_data = 0x%x\n", __func__, wr.imm_data);
 	sge.addr = (uintptr_t)conn->send_region;
 	sge.length = BUFFER_SIZE;
 	sge.lkey = conn->send_mr->lkey;
